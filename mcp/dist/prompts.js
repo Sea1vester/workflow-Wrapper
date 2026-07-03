@@ -19,6 +19,12 @@ Always invoke MCP tools (wfw_start, wfw_plan, wfw_prompt, wfw_auto, wfw_validate
 rather than reimplementing logic. Set project_root when the client cwd is not the repo.`;
 export const WFW_PROMPTS = [
     {
+        name: "wfw-workflow",
+        description: "Deprecated alias for workflowWrapper help and routing (use wfw)",
+        args: [{ name: "args", description: "Subcommand and arguments for wfw" }],
+        template: (args) => fill(ROUTING, args),
+    },
+    {
         name: "wfw",
         description: "workflowWrapper help and routing (wfw)",
         args: [{ name: "args", description: "Subcommand and arguments for wfw" }],

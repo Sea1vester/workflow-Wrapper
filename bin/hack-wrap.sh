@@ -7,7 +7,7 @@ ARTIFACT_LINK="lavish_artifact.html"
 PROMPT_FILE=".wfw/last-prompt.txt"
 GNHF_MAX_ITERATIONS="${WFW_GNHF_MAX_ITERATIONS:-12}"
 GNHF_MAX_TOKENS="${WFW_GNHF_MAX_TOKENS:-300000}"
-NO_MISTAKES_SKIP="${WFW_NO_MISTAKES_SKIP:-document}"
+NO_MISTAKES_SKIP="${WFW_NO_MISTAKES_SKIP:-}"
 
 require_cmd() {
   local cmd="$1"
@@ -46,7 +46,7 @@ gnhf guardrails (wfw auto and wfw gnhf):
   Override: WFW_GNHF_MAX_ITERATIONS, WFW_GNHF_MAX_TOKENS
 
 no-mistakes validate (wfw validate):
-  Skips document step by default (override: WFW_NO_MISTAKES_SKIP, empty to disable)
+  Optional skip steps via WFW_NO_MISTAKES_SKIP (e.g. document)
 
 Typical flow (from your app repo):
   wfw start my-feature
@@ -59,7 +59,7 @@ EOF
 
 is_feature_worktree() {
   git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 1
-  [ -L "$ARTIFACT_LINK" ] || [ -f "$ARTIFACT_LINK" ]
+  [ -L "$ARTIFACT_LINK" ]
 }
 
 require_feature_worktree() {
@@ -91,13 +91,15 @@ resolve_repo_root() {
   toplevel="$(git rev-parse --show-toplevel)"
 
   while IFS= read -r wt_line; do
-    if [ "$wt_line" = "worktree" ]; then
-      read -r wt_path
-      if [ -d "$wt_path/$WORKSPACE_DIR" ]; then
-        printf '%s\n' "$wt_path"
-        return
-      fi
-    fi
+    case "$wt_line" in
+      worktree\ *)
+        wt_path="${wt_line#worktree }"
+        if [ -d "$wt_path/$WORKSPACE_DIR" ]; then
+          printf '%s\n' "$wt_path"
+          return
+        fi
+        ;;
+    esac
   done < <(git worktree list --porcelain 2>/dev/null || true)
 
   if [ -d "$toplevel/$WORKSPACE_DIR" ]; then

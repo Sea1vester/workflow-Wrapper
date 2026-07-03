@@ -1,0 +1,9 @@
+description = "Queue a Lavish build prompt (wfw prompt)"
+prompt = """
+Run workflowWrapper prompt with: {{args}}
+
+Execute in the terminal:
+!{wfw prompt {{args}}}
+
+Writes .wfw/last-prompt.txt and opens lavish-axi on the shared plan artifact.
+"""

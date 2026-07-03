@@ -28,6 +28,12 @@ rather than reimplementing logic. Set project_root when the client cwd is not th
 
 export const WFW_PROMPTS: WfwPromptDefinition[] = [
   {
+    name: "wfw-workflow",
+    description: "Deprecated alias for workflowWrapper help and routing (use wfw)",
+    args: [{ name: "args", description: "Subcommand and arguments for wfw" }],
+    template: (args) => fill(ROUTING, args),
+  },
+  {
     name: "wfw",
     description: "workflowWrapper help and routing (wfw)",
     args: [{ name: "args", description: "Subcommand and arguments for wfw" }],
