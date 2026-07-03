@@ -1,0 +1,9 @@
+description = "Push HEAD through no-mistakes validation (wfw validate)"
+prompt = """
+Run workflowWrapper validate.
+
+Execute:
+!{wfw validate}
+
+Report the result.
+"""

@@ -1,0 +1,22 @@
+description = "workflowWrapper help and routing (wfw)"
+prompt = """
+The user invoked workflowWrapper (/wfw).
+
+Request: {{args}}
+
+Route to the correct wfw subcommand and run it in the terminal. Subcommands:
+- start <feature>
+- plan [prompt]
+- prompt <text>
+- auto "<objective>"
+- validate
+- treehouse ...
+- lavish ...
+- gnhf ...
+- no-mistakes
+
+Always prefer shelling out to `wfw` rather than reimplementing logic.
+Example: !{wfw {{args}}}
+
+If args are empty, run: !{wfw --help}
+"""

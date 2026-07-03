@@ -1,0 +1,9 @@
+description = "Lease a treehouse worktree and set up Lavish symlink (wfw start)"
+prompt = """
+Run workflowWrapper start for feature: {{args}}
+
+Execute in the terminal:
+!{wfw start {{args}}}
+
+Report the worktree path and tell the user to run /wfw:plan next.
+"""

@@ -1,0 +1,9 @@
+description = "Run guarded gnhf in the current worktree (wfw auto)"
+prompt = """
+Run workflowWrapper auto with objective: {{args}}
+
+Execute:
+!{wfw auto {{args}}}
+
+Guardrails: 12 iterations, 300k tokens max.
+"""

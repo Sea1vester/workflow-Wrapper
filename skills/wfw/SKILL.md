@@ -20,4 +20,6 @@ First token = subcommand; rest = args. Run matching shell via `wfw` (terminal CL
 
 **gnhf:** always via `wfw` with `--max-iterations 12 --max-tokens 300000` (env: `WFW_GNHF_MAX_*`).
 
-**Install:** `npm link && npm run install-skill`
+**Install:** `npm link && npm run install-skill` (from workflow-wrapper repo)
+
+Slash commands differ per LLM CLI; terminal `wfw` works everywhere. See README.

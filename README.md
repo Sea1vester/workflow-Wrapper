@@ -2,98 +2,81 @@
 
 Hackathon CLI that integrates **treehouse**, **lavish**, **gnhf**, and **no-mistakes**.
 
+Use the **terminal CLI** (`wfw`) or the **MCP server** (`wfw-mcp`) from any LLM client that supports Model Context Protocol.
+
 ## Install (once per machine)
 
-`workflow-wrapper` is its **own npm package** - separate from your app repo (e.g. `trainingDroid`).
-You do not run `npm link` inside your project unless that project *is* workflow-wrapper.
-
-### 1. Get workflow-wrapper
-
-Clone it once anywhere on your machine:
+`workflow-wrapper` is its own npm package - not your app repo.
 
 ```bash
 git clone https://github.com/Sea1vester/workflow-Wrapper.git ~/tools/workflow-wrapper
 cd ~/tools/workflow-wrapper
-```
-
-(Or `cd` into an existing checkout such as `optimizeWrkFlow`.)
-
-### 2. Link the CLI globally
-
-```bash
 npm link
+npm run install-mcp
 ```
 
-This puts the `wfw` command on your `PATH` for all terminals.
-
-### 3. Install the agent skill (optional)
-
-```bash
-npm run install-skill
-```
-
-Copies the `/wfw` skill into `~/.agents/skills/wfw/` (override with `WFW_SKILL_DIR`).
-
-### 4. Use it in your app repo
-
-```bash
-cd ~/CodingFun/trainingDroid   # your project - any git repo
-wfw start my-feature
-```
+This puts `wfw` and `wfw-mcp` on your PATH and registers the MCP server with supported clients.
 
 Prerequisites on PATH: `treehouse`, `gnhf`, `git` (with `no-mistakes` remote), `node`/`npm`.
 
-## Detailed user workflow
-
-End-to-end path for one teammate from install to shipped feature.
-Terminal commands and LLM slash commands are shown together.
-
-### Step 1 - Install (once per machine)
+## Use in your app repo
 
 ```bash
-cd ~/tools/workflow-wrapper   # the workflow-wrapper repo, not your app
-npm link
-npm run install-skill
+cd ~/CodingFun/trainingDroid   # any git project
+wfw start my-feature
 ```
 
-This gives you `wfw` in the terminal and `/wfw` in any LLM agent that loads skills.
+Set `WFW_PROJECT_ROOT` if your MCP client's cwd is not the project directory.
 
-### Step 2 - Lease a worktree (per feature)
+## MCP tools (LLM-agnostic)
 
-From **your app repo**:
+After `npm run install-mcp`, restart your LLM client. Available tools:
+
+| Tool | Action |
+|------|--------|
+| `wfw_start` | `wfw start <feature>` |
+| `wfw_plan` | `wfw plan [prompt]` |
+| `wfw_auto` | `wfw auto "<objective>"` (guardrailed gnhf) |
+| `wfw_validate` | `wfw validate` |
+
+MCP prompt `wfw-workflow` routes subcommands to the right tool.
+
+Works with any MCP-capable client (Cursor, Gemini CLI, Claude Desktop, OpenCode, etc.).
+
+## Detailed user workflow
+
+### Step 1 - Install
+
+```bash
+cd ~/tools/workflow-wrapper
+npm link
+npm run install-mcp
+```
+
+### Step 2 - Lease a worktree (from your app repo)
 
 ```bash
 cd ~/CodingFun/trainingDroid
 wfw start auth-refactor
 ```
 
-Creates `my_team_workspace/`, the shared Lavish plan, and a treehouse lease.
-Your shell lands in the leased worktree with `lavish_artifact.html` symlinked to the team plan.
+Creates `my_team_workspace/`, shared Lavish plan, treehouse lease, and `lavish_artifact.html` symlink.
 
-LLM: `/wfw start auth-refactor`
-
-### Step 3 - Collaborative planning (Lavish)
+### Step 3 - Plan (Lavish)
 
 ```bash
 wfw plan "Map OAuth login flow"
-# or open the existing plan:
+# or
 wfw plan
 ```
 
-An agent builds or updates the shared HTML plan; teammates review and annotate in Lavish Editor.
-
-LLM: `/wfw prompt Map OAuth login flow`
-
-### Step 4 - Autonomous implementation (gnhf)
+### Step 4 - Build (gnhf, guardrailed)
 
 ```bash
 wfw auto "Implement the approved Lavish plan"
 ```
 
-Runs gnhf from the worktree only, with guardrails: **12 iterations, 300k tokens** max.
-Override via `WFW_GNHF_MAX_ITERATIONS` and `WFW_GNHF_MAX_TOKENS`.
-
-LLM: `/wfw auto "Implement the approved Lavish plan"`
+12 iterations, 300k tokens max (`WFW_GNHF_MAX_ITERATIONS`, `WFW_GNHF_MAX_TOKENS`).
 
 ### Step 5 - Validate (no-mistakes)
 
@@ -101,55 +84,39 @@ LLM: `/wfw auto "Implement the approved Lavish plan"`
 wfw validate
 ```
 
-Runs `git push no-mistakes HEAD`.
-Blocked outside a feature worktree.
-
-LLM: `/wfw validate`
-
 ### Parallel teammates
 
-Each person runs `wfw start <their-feature>` for a separate treehouse lease.
-All worktrees share one `shared_lavish_plan.html` for team alignment.
-Use `wfw treehouse status` to inspect the pool.
+Each person runs `wfw start <their-feature>`. All worktrees share `shared_lavish_plan.html`.
 
 ## Terminal commands
 
 ```bash
-wfw start my-feature          # workspace + treehouse lease + lavish symlink
-wfw plan                      # open shared Lavish plan
-wfw plan "Map the auth flow"  # queue prompt + open Lavish (/lavish-style)
+wfw start my-feature
+wfw plan "Map the auth flow"
 wfw prompt "Map the auth flow"
-wfw auto "Implement the plan" # gnhf with guardrails (12 iter, 300k tokens)
-wfw validate                  # git push no-mistakes HEAD
-```
-
-## Passthrough (full upstream CLIs)
-
-```bash
+wfw auto "Implement the plan"
+wfw validate
 wfw treehouse status
 wfw lavish poll lavish_artifact.html
-wfw gnhf "objective"          # guardrails always applied
+wfw gnhf "objective"
 wfw no-mistakes validate
-```
-
-## Agent slash commands (LLM CLIs)
-
-For your LLM agent's slash-command interface - not the terminal `wfw` binary:
-
-```
-/wfw start my-feature
-/wfw prompt Build the OAuth login flow
-/wfw auto "Implement the approved plan"
-/wfw validate
-/wfw treehouse status
 ```
 
 ## Layout
 
 ```
 my_team_workspace/
-  shared_lavish_plan.html     # team Lavish plan
+  shared_lavish_plan.html
   treehouse.toml
 <leased-worktree>/
-  lavish_artifact.html        # symlink -> shared plan
+  lavish_artifact.html -> shared plan
+```
+
+## Package layout
+
+```
+workflow-wrapper/
+  bin/hack-wrap.sh      # wfw CLI
+  bin/install-mcp.sh    # MCP client config
+  mcp/                  # wfw-mcp server (stdio)
 ```

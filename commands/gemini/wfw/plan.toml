@@ -1,0 +1,14 @@
+description = "Open or build the shared Lavish plan (wfw plan)"
+prompt = """
+Run workflowWrapper plan.
+
+User request: {{args}}
+
+If the user provided text, run:
+!{wfw plan {{args}}}
+
+Otherwise run:
+!{wfw plan}
+
+Follow the lavish workflow to build or update the team HTML artifact when a prompt was given.
+"""
