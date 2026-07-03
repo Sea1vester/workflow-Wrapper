@@ -1,0 +1,3 @@
+commands:
+  test: "npm run test:integration && npm --prefix mcp test"
+  lint: "shellcheck bin/*.sh tests/integration/*.sh && npm run build:mcp"

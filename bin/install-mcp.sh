@@ -14,7 +14,6 @@ if ! command -v wfw >/dev/null 2>&1; then
 fi
 
 CURSOR_MCP="${HOME}/.cursor/mcp.json"
-GEMINI_SETTINGS="${HOME}/.gemini/settings.json"
 
 merge_cursor_mcp() {
   local tmp
