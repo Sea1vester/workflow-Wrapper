@@ -16,8 +16,8 @@
   "files": [
     "bin",
     "skills",
-    "commands",
     "mcp/dist",
+    "mcp/prompts",
     "mcp/package.json"
   ],
   "keywords": [

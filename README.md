@@ -69,10 +69,11 @@ After `npm run install-mcp`, restart your LLM client. Available tools:
 |------|--------|
 | `wfw_start` | `wfw start <feature>` |
 | `wfw_plan` | `wfw plan [prompt]` |
+| `wfw_prompt` | `wfw prompt "<prompt>"` |
 | `wfw_auto` | `wfw auto "<objective>"` (guardrailed gnhf) |
 | `wfw_validate` | `wfw validate` |
 
-MCP prompt `wfw-workflow` routes subcommands to the right tool.
+MCP prompts (`wfw`, `wfw-start`, `wfw-plan`, `wfw-prompt`, `wfw-auto`, `wfw-validate`) route subcommands to the right tool for clients that support MCP prompts.
 
 Works with any MCP-capable client (Cursor, Gemini CLI, Claude Desktop, OpenCode, etc.).
 
@@ -154,6 +155,6 @@ wfw no-mistakes validate
 workflow-wrapper/
   bin/hack-wrap.sh      # wfw CLI
   bin/install-mcp.sh    # MCP client config
-  mcp/                  # wfw-mcp server (stdio)
+  mcp/                  # wfw-mcp server (stdio) + prompts/gemini for Gemini CLI
   tests/integration/    # shared Lavish plan checks (npm run test:integration)
 ```

@@ -86,13 +86,59 @@ resolve_lavish_artifact() {
   printf '%s\n' "$fallback"
 }
 
-append_git_exclude() {
+require_git_repo() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "Error: wfw start must run inside a git repository." >&2
+    exit 1
+  fi
+}
+
+resolve_repo_root() {
+  git rev-parse --show-toplevel
+}
+
+append_git_exclude_pattern() {
+  local pattern="$1"
   local git_dir
   git_dir="$(git rev-parse --git-dir)"
   mkdir -p "$git_dir/info"
-  if ! grep -qxF "$ARTIFACT_LINK" "$git_dir/info/exclude" 2>/dev/null; then
-    echo "$ARTIFACT_LINK" >>"$git_dir/info/exclude"
+  if ! grep -qxF "$pattern" "$git_dir/info/exclude" 2>/dev/null; then
+    echo "$pattern" >>"$git_dir/info/exclude"
   fi
+}
+
+append_git_exclude() {
+  append_git_exclude_pattern "$ARTIFACT_LINK"
+}
+
+append_shared_plan_git_exclude() {
+  local repo_root="$1"
+  local git_dir
+  git_dir="$(git -C "$repo_root" rev-parse --git-dir)"
+  mkdir -p "$git_dir/info"
+  local pattern="$WORKSPACE_DIR/$SHARED_PLAN"
+  if ! grep -qxF "$pattern" "$git_dir/info/exclude" 2>/dev/null; then
+    echo "$pattern" >>"$git_dir/info/exclude"
+  fi
+}
+
+ensure_lavish_symlink() {
+  local worktree_path="$1"
+  local shared_plan_abs="$2"
+  local link_path="$worktree_path/$ARTIFACT_LINK"
+
+  if [ -L "$link_path" ]; then
+    local current
+    current="$(readlink "$link_path")"
+    if [ "$current" = "$shared_plan_abs" ]; then
+      return
+    fi
+    rm -f "$link_path"
+  elif [ -e "$link_path" ]; then
+    rm -f "$link_path"
+  fi
+
+  ln -s "$shared_plan_abs" "$link_path"
 }
 
 print_first_start_setup() {
@@ -120,6 +166,7 @@ run_gnhf_guarded() {
 cmd_start() {
   local feature_name="${1:-}"
   local first_start=false
+  local repo_root
 
   if [ -z "$feature_name" ]; then
     echo "Error: feature name is required." >&2
@@ -128,6 +175,10 @@ cmd_start() {
   fi
 
   require_cmd treehouse
+  require_git_repo
+
+  repo_root="$(resolve_repo_root)"
+  cd "$repo_root"
 
   # treehouse.toml lives at the git repo root, not inside my_team_workspace.
   if [ ! -f "treehouse.toml" ]; then
@@ -138,19 +189,19 @@ cmd_start() {
     mkdir -p "$WORKSPACE_DIR"
     first_start=true
   fi
-  cd "$WORKSPACE_DIR"
 
   if [ "$first_start" = true ]; then
     print_first_start_setup
   fi
 
-  if [ ! -f "$SHARED_PLAN" ]; then
-    : >"$SHARED_PLAN"
+  if [ ! -f "$WORKSPACE_DIR/$SHARED_PLAN" ]; then
+    : >"$WORKSPACE_DIR/$SHARED_PLAN"
   fi
 
-  local workspace_root shared_plan_abs worktree_path
-  workspace_root="$(pwd)"
-  shared_plan_abs="$workspace_root/$SHARED_PLAN"
+  local shared_plan_abs worktree_path
+  shared_plan_abs="$(cd "$repo_root/$WORKSPACE_DIR" && pwd -P)/$SHARED_PLAN"
+
+  append_shared_plan_git_exclude "$repo_root"
 
   worktree_path="$(treehouse get --lease --lease-holder "$feature_name")"
   if [ -z "$worktree_path" ] || [ ! -d "$worktree_path" ]; then
@@ -158,13 +209,11 @@ cmd_start() {
     exit 1
   fi
 
-  cd "$worktree_path"
-
-  if [ ! -e "$ARTIFACT_LINK" ]; then
-    ln -s "$shared_plan_abs" "$ARTIFACT_LINK"
-  fi
-
-  append_git_exclude
+  (
+    cd "$worktree_path"
+    ensure_lavish_symlink "$worktree_path" "$shared_plan_abs"
+    append_git_exclude
+  )
 
   echo "Ready in worktree: $worktree_path"
   echo "Shared plan symlink: $ARTIFACT_LINK -> $shared_plan_abs"

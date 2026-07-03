@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { formatWfwResult, runWfw } from "./exec.js";
+import { WFW_PROMPTS } from "./prompts.js";
 
 const projectRootSchema = z
   .string()
@@ -25,7 +26,7 @@ async function invokeWfw(args: string[], projectRoot?: string) {
 
 const server = new McpServer({
   name: "wfw",
-  version: "1.0.0",
+  version: "1.1.0",
 });
 
 server.tool(
@@ -52,6 +53,16 @@ server.tool(
 );
 
 server.tool(
+  "wfw_prompt",
+  "Queue a Lavish build prompt and open lavish-axi (wfw prompt)",
+  {
+    prompt: z.string().describe("Plan prompt text for Lavish"),
+    project_root: projectRootSchema,
+  },
+  async ({ prompt, project_root }) => invokeWfw(["prompt", prompt], project_root),
+);
+
+server.tool(
   "wfw_auto",
   "Run guarded gnhf in the current worktree (wfw auto)",
   {
@@ -70,25 +81,31 @@ server.tool(
   async ({ project_root }) => invokeWfw(["validate"], project_root),
 );
 
-server.prompt(
-  "wfw-workflow",
-  "Route a wfw subcommand through the correct MCP tool",
-  {
-    subcommand: z.string().describe("e.g. start, plan, auto, validate"),
-    args: z.string().optional().describe("Arguments for the subcommand"),
-  },
-  async ({ subcommand, args }) => ({
-    messages: [
-      {
-        role: "user",
-        content: {
-          type: "text",
-          text: `Run workflowWrapper via MCP tools.\nSubcommand: ${subcommand}\nArgs: ${args ?? "(none)"}\n\nUse wfw_start, wfw_plan, wfw_auto, or wfw_validate. Always invoke tools rather than shelling out to gnhf directly.`,
+for (const promptDef of WFW_PROMPTS) {
+  const argSchemas: Record<string, z.ZodTypeAny> = {};
+  for (const arg of promptDef.args ?? []) {
+    argSchemas[arg.name] = arg.required
+      ? z.string().describe(arg.description)
+      : z.string().optional().describe(arg.description);
+  }
+
+  server.prompt(
+    promptDef.name,
+    promptDef.description,
+    argSchemas,
+    async (args) => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: promptDef.template(args as Record<string, string | undefined>),
+          },
         },
-      },
-    ],
-  }),
-);
+      ],
+    }),
+  );
+}
 
 async function main() {
   const transport = new StdioServerTransport();

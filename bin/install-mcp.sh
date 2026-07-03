@@ -51,4 +51,4 @@ echo "  gemini mcp add -s user wfw $WFW_MCP_BIN"
 echo
 echo "Claude Desktop: add the same command to your MCP config manually."
 echo
-echo "Restart your LLM client, then use wfw_start / wfw_plan / wfw_auto / wfw_validate tools."
+echo "Restart your LLM client, then use wfw_start / wfw_plan / wfw_prompt / wfw_auto / wfw_validate tools and MCP prompts (wfw, wfw-start, wfw-plan, wfw-prompt, wfw-auto, wfw-validate)."

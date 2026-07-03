@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "test": "node --test dist/exec.test.js"
+    "test": "node --test dist/exec.test.js dist/prompts.test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

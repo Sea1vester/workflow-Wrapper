@@ -11,10 +11,11 @@ install_dir() {
 }
 
 install_gemini_commands() {
+  local src="$ROOT/mcp/prompts/gemini"
   local dst="$HOME/.gemini/commands"
   mkdir -p "$dst/wfw"
-  cp "$ROOT/commands/gemini/wfw.toml" "$dst/wfw.toml"
-  cp "$ROOT/commands/gemini/wfw/"*.toml "$dst/wfw/"
+  cp "$src/wfw.toml" "$dst/wfw.toml"
+  cp "$src/wfw/"*.toml "$dst/wfw/"
   echo "  gemini -> $dst/wfw.toml (/wfw)"
   echo "  gemini -> $dst/wfw/*.toml (/wfw:start, /wfw:plan, /wfw:auto, /wfw:validate)"
 }
