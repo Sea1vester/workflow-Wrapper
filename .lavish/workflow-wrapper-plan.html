@@ -9,9 +9,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    :where(.grid, .flex) > * { min-width: 0; }
-    :where(p, h1, h2, h3, li, .badge) { overflow-wrap: anywhere; }
+    html, body { max-width: 100%; overflow-x: clip; }
+    main { max-width: 100%; overflow-x: clip; }
+    :where(.grid, .flex, .timeline, .timeline > li) > * { min-width: 0; max-width: 100%; }
+    :where(p, h1, h2, h3, li, .badge, .timeline-box) { overflow-wrap: anywhere; }
     pre { white-space: pre-wrap; word-break: break-word; }
+    .timeline-box { width: 100%; max-width: 100%; }
+    .mockup-code { max-width: 100%; overflow-x: auto; }
   </style>
   <script type="module">
     import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.esm.min.mjs";
@@ -64,6 +68,140 @@
         </ul>
       </div>
     </div>
+
+    <section class="card card-border bg-base-100 shadow border-primary/20">
+      <div class="card-body gap-6">
+        <div>
+          <h2 class="card-title text-2xl">Detailed user workflow</h2>
+          <p class="text-sm text-base-content/70 mt-1">
+            End-to-end path for one teammate from install to shipped feature.
+            Terminal commands and LLM slash commands are shown side by side.
+          </p>
+        </div>
+
+        <div class="wfw-steps flex flex-col gap-4 w-full max-w-full">
+          <div class="card card-border bg-base-200 w-full max-w-full">
+            <div class="card-body gap-2 min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="badge badge-primary">Step 1</span>
+                <span class="text-xs font-mono opacity-70">Once</span>
+              </div>
+              <h3 class="font-bold">Install tools</h3>
+              <p class="text-sm">Clone repo, link CLI, install agent skill.</p>
+              <div class="mockup-code text-xs w-full max-w-full">
+                <pre data-prefix="$"><code>npm link</code></pre>
+                <pre data-prefix="$"><code>npm run install-skill</code></pre>
+              </div>
+              <p class="text-xs opacity-70">Ensures <code class="kbd kbd-xs">wfw</code> in terminal and <code class="kbd kbd-xs">/wfw</code> in Cursor / OpenCode / Claude / Gemini.</p>
+            </div>
+          </div>
+          <div class="card card-border bg-base-200 w-full max-w-full">
+            <div class="card-body gap-2 min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="badge badge-primary">Step 2</span>
+                <span class="text-xs font-mono opacity-70">Per feature</span>
+              </div>
+              <h3 class="font-bold">Lease a worktree</h3>
+              <p class="text-sm">Creates team workspace, shared Lavish plan, treehouse lease.</p>
+              <div class="mockup-code text-xs w-full max-w-full">
+                <pre data-prefix="$"><code>wfw start auth-refactor</code></pre>
+              </div>
+              <p class="text-xs">Shell lands in leased worktree with <code class="kbd kbd-xs">lavish_artifact.html</code> symlinked to team plan.</p>
+              <p class="text-xs opacity-70">LLM: <code class="kbd kbd-xs">/wfw start auth-refactor</code></p>
+            </div>
+          </div>
+          <div class="card card-border bg-base-200 w-full max-w-full">
+            <div class="card-body gap-2 min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="badge badge-secondary">Step 3</span>
+                <span class="text-xs font-mono opacity-70">Plan</span>
+              </div>
+              <h3 class="font-bold">Collaborative planning (Lavish)</h3>
+              <p class="text-sm">Build and review the feature plan in the browser.</p>
+              <div class="mockup-code text-xs w-full max-w-full">
+                <pre data-prefix="$"><code>wfw plan "Map OAuth login flow"</code></pre>
+                <pre data-prefix=" "><code># or open existing plan:</code></pre>
+                <pre data-prefix="$"><code>wfw plan</code></pre>
+              </div>
+              <p class="text-xs">Agent builds HTML on shared plan; teammate annotates in Lavish Editor.</p>
+              <p class="text-xs opacity-70">LLM: <code class="kbd kbd-xs">/wfw prompt Map OAuth login flow</code></p>
+            </div>
+          </div>
+          <div class="card card-border bg-base-200 w-full max-w-full">
+            <div class="card-body gap-2 min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="badge badge-accent">Step 4</span>
+                <span class="text-xs font-mono opacity-70">Build</span>
+              </div>
+              <h3 class="font-bold">Autonomous implementation (gnhf)</h3>
+              <p class="text-sm">Run guarded agent against approved plan - only from worktree.</p>
+              <div class="mockup-code text-xs w-full max-w-full">
+                <pre data-prefix="$"><code>wfw auto "Implement the approved Lavish plan"</code></pre>
+              </div>
+              <p class="text-xs">Guardrails: 12 iterations, 300k tokens max.</p>
+              <p class="text-xs opacity-70">LLM: <code class="kbd kbd-xs">/wfw auto "Implement the approved Lavish plan"</code></p>
+            </div>
+          </div>
+          <div class="card card-border bg-base-200 w-full max-w-full">
+            <div class="card-body gap-2 min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="badge badge-info">Step 5</span>
+                <span class="text-xs font-mono opacity-70">Ship</span>
+              </div>
+              <h3 class="font-bold">Validate (no-mistakes)</h3>
+              <p class="text-sm">Push through review / CI pipeline safely.</p>
+              <div class="mockup-code text-xs w-full max-w-full">
+                <pre data-prefix="$"><code>wfw validate</code></pre>
+              </div>
+              <p class="text-xs">Runs <code class="kbd kbd-xs">git push no-mistakes HEAD</code> - blocked outside a worktree.</p>
+              <p class="text-xs opacity-70">LLM: <code class="kbd kbd-xs">/wfw validate</code></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-box border border-base-content/10 p-4 bg-base-200">
+          <p class="text-sm font-semibold mb-3">Sequence: terminal + browser + agents</p>
+          <pre class="mermaid text-sm">
+sequenceDiagram
+  participant Dev as Teammate
+  participant Term as wfw CLI
+  participant TH as treehouse
+  participant LV as Lavish Editor
+  participant LLM as LLM agent
+  participant GN as gnhf
+  participant NM as no-mistakes
+
+  Dev->>Term: npm link + install-skill
+  Dev->>Term: wfw start auth-refactor
+  Term->>TH: init + get --lease
+  TH-->>Dev: leased worktree + lavish symlink
+
+  Dev->>LLM: /wfw prompt Map OAuth flow
+  LLM->>LV: build shared_lavish_plan.html
+  Dev->>LV: annotate plan in browser
+
+  Dev->>Term: wfw auto Implement plan
+  Term->>GN: guarded run 12 iter 300k tokens
+  GN-->>Dev: code changes in worktree
+
+  Dev->>Term: wfw validate
+  Term->>NM: git push no-mistakes HEAD
+  NM-->>Dev: CI / review pipeline
+          </pre>
+        </div>
+
+        <div role="alert" class="alert alert-success alert-soft text-sm">
+          <div class="min-w-0">
+            <h3 class="font-bold">Parallel teammates</h3>
+            <p class="mt-1">
+              Each person runs <code class="kbd kbd-xs">wfw start &lt;their-feature&gt;</code> to get a separate treehouse lease.
+              All worktrees share one <code class="kbd kbd-xs">shared_lavish_plan.html</code> for team alignment.
+              Use <code class="kbd kbd-xs">wfw treehouse status</code> to see the pool.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section class="card card-border bg-base-100 shadow">
       <div class="card-body gap-4">
@@ -119,7 +257,7 @@ flowchart TD
                 <tr>
                   <td><code class="font-mono text-xs">wfw auto "..."</code></td>
                   <td><span class="badge badge-success badge-sm">worktree</span></td>
-                  <td class="text-xs font-mono">gnhf --max-iterations 12 --max-tokens 30000</td>
+                  <td class="text-xs font-mono">gnhf --max-iterations 12 --max-tokens 300000</td>
                 </tr>
                 <tr>
                   <td><code class="font-mono text-xs">wfw validate</code></td>
@@ -153,7 +291,7 @@ flowchart TD
               <p class="mt-1">
                 Always passes
                 <code class="kbd kbd-xs">--max-iterations 12</code> and
-                <code class="kbd kbd-xs">--max-tokens 30000</code>.
+                <code class="kbd kbd-xs">--max-tokens 300000</code>.
               </p>
               <p class="mt-2">
                 Override via
@@ -166,11 +304,12 @@ flowchart TD
             <div class="min-w-0">
               <h3 class="font-bold">Terminal + LLM slash commands</h3>
               <p class="mt-1">
-                Download via <code class="kbd kbd-xs">npm link</code> + <code class="kbd kbd-xs">npm run install-skill</code>.
-                Agents get <code class="kbd kbd-xs">/wfw start</code>, <code class="kbd kbd-xs">/wfw prompt</code>, <code class="kbd kbd-xs">/wfw auto</code>, etc.
+                <strong>Terminal:</strong> <code class="kbd kbd-xs">wfw</code> via <code class="kbd kbd-xs">npm link</code>.
+                <strong>LLM agents</strong> (Cursor, OpenCode, Claude, Gemini): <code class="kbd kbd-xs">/wfw</code> after <code class="kbd kbd-xs">npm run install-skill</code>.
               </p>
               <p class="mt-2">
                 <code class="kbd kbd-xs">wfw plan "..."</code> queues a Lavish build like <code class="kbd kbd-xs">/lavish</code> on the shared plan artifact.
+                Skill file kept lean (~25 lines) to reduce agent token load.
               </p>
             </div>
           </div>

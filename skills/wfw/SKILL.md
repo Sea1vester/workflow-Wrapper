@@ -1,74 +1,23 @@
 ---
 name: wfw
 description: >-
-  Hackathon workflow orchestration integrating treehouse, lavish, gnhf, and
-  no-mistakes. Use when the user invokes /wfw or wants the team workflow for
-  worktrees, Lavish planning, guarded gnhf runs, or no-mistakes validation.
-argument-hint: <command>, e.g. start my-feature | plan | prompt Build auth | auto "..." | validate | treehouse status
+  /wfw hackathon workflow: treehouse worktrees, Lavish plans, guarded gnhf, no-mistakes.
+  Use when user invokes /wfw.
+argument-hint: start <feature> | plan [prompt] | prompt <text> | auto "..." | validate | treehouse | lavish | gnhf | no-mistakes
 ---
 
-# workflowWrapper (/wfw)
-
-workflowWrapper connects treehouse worktrees, Lavish planning, gnhf automation, and no-mistakes validation.
-The CLI is `wfw`; this skill mirrors every terminal command as `/wfw`.
-
-## Request
+# /wfw (LLM slash command only)
 
 $ARGUMENTS
 
-Parse the first token as the subcommand. Remaining tokens are arguments.
+First token = subcommand; rest = args. Run matching shell via `wfw` (terminal CLI).
 
-## Core problem solved
+**Routes:** `start <feature>` | `plan` / `plan <prompt>` / `prompt <text>` | `auto "<obj>"` | `validate` | `treehouse …` | `lavish …` | `gnhf …` | `no-mistakes`
 
-- Treehouse + Lavish integration via a shared `lavish_artifact.html` symlink per worktree
-- Guardrailed gnhf so teammates cannot burst token usage accidentally
-- Safe no-mistakes usage only from a leased feature worktree
+**Worktree required** for `auto`, `validate`, and open-only `plan`. Need `lavish_artifact.html` → else tell user `wfw start <feature>`.
 
-## Command routing
+**`prompt` / `plan <text>`:** like `/lavish` on team artifact (`lavish_artifact.html` or `my_team_workspace/shared_lavish_plan.html`). Write `.wfw/last-prompt.txt`, follow lavish skill (`~/.agents/skills/lavish/SKILL.md`), then `wfw lavish <artifact>` + poll.
 
-| /wfw command | Terminal equivalent | Agent action |
-|--------------|---------------------|--------------|
-| `start <feature>` | `wfw start <feature>` | Run in shell; user must cd into leased worktree |
-| `plan` | `wfw plan` | Open Lavish on `lavish_artifact.html` via `wfw lavish lavish_artifact.html` |
-| `plan <prompt>` or `prompt <prompt>` | `wfw plan "<prompt>"` | **Lavish workflow** (see below) |
-| `auto "<objective>"` | `wfw auto "<objective>"` | Run guarded gnhf in worktree |
-| `validate` | `wfw validate` | Run `git push no-mistakes HEAD` in worktree |
-| `treehouse ...` | `wfw treehouse ...` | Passthrough to treehouse |
-| `lavish ...` | `wfw lavish ...` | Passthrough to `npx lavish-axi` |
-| `gnhf ...` | `wfw gnhf ...` | Passthrough with guardrails (12 iter, 30k tokens) |
-| `no-mistakes` | `wfw no-mistakes` | Safe validate push from worktree |
+**gnhf:** always via `wfw` with `--max-iterations 12 --max-tokens 300000` (env: `WFW_GNHF_MAX_*`).
 
-## /wfw prompt and /wfw plan <prompt> (Lavish integration)
-
-When the user provides a prompt, behave like `/lavish` but target the team plan artifact:
-
-1. Resolve artifact path:
-   - In a feature worktree: `lavish_artifact.html` (symlink to shared plan)
-   - Else: `my_team_workspace/shared_lavish_plan.html` or `.lavish/plan.html`
-2. Write the prompt to `.wfw/last-prompt.txt`
-3. Follow the lavish skill workflow: build or update the HTML artifact for the prompt
-4. Run `wfw lavish <artifact>`
-5. Run `wfw lavish poll <artifact>` and keep polling for feedback
-6. Fix `layout_warnings` before involving the human
-
-Read the lavish skill at `~/.agents/skills/lavish/SKILL.md` for HTML and poll rules.
-
-## gnhf guardrails
-
-Always pass through wfw (never call bare `gnhf` directly unless user insists):
-
-- `--max-iterations 12` (override: `WFW_GNHF_MAX_ITERATIONS`)
-- `--max-tokens 30000` (override: `WFW_GNHF_MAX_TOKENS`)
-
-## Worktree requirement
-
-`plan` (open only), `auto`, and `validate` require a feature worktree with `lavish_artifact.html`.
-If missing, tell the user to run `/wfw start <feature-name>` first.
-
-## Install
-
-```bash
-git clone <repo> && cd workflow-wrapper
-npm link
-npm run install-skill
-```
+**Install:** `npm link && npm run install-skill`
