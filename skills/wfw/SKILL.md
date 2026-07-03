@@ -12,11 +12,14 @@ $ARGUMENTS
 
 First token = subcommand; rest = args. Run matching shell via `wfw` (terminal CLI).
 
-**Primary value:** one shared Lavish plan across parallel worktrees. Each `wfw start <feature>` leases a separate treehouse worktree, but every worktree gets `lavish_artifact.html` as a symlink to `my_team_workspace/shared_lavish_plan.html`. Edits from any lease are visible to all teammates immediately. `treehouse.toml` is created at the git repo root (not inside `my_team_workspace`).
+**Primary value:** one shared Lavish plan across parallel worktrees.
+`wfw start` wires the team plan into each leased worktree automatically.
+Users `cd` into the printed worktree, then use `wfw plan`, `wfw auto`, and `wfw validate`.
 
 **Routes:** `start <feature>` | `plan` / `plan <prompt>` / `prompt <text>` | `auto "<obj>"` | `validate` | `treehouse …` | `lavish …` | `gnhf …` | `no-mistakes`
 
-**Worktree required** for `auto`, `validate`, and open-only `plan`. Need `lavish_artifact.html` → else tell user `wfw start <feature>`.
+**Worktree required** for `auto`, `validate`, and `plan`/`prompt` with lavish-axi.
+If missing, tell the user to run `wfw start <feature>` from the app repo and `cd` into the path it prints.
 
 **`prompt` / `plan <text>`:** like `/lavish` on team artifact (`lavish_artifact.html` or `my_team_workspace/shared_lavish_plan.html`). Write `.wfw/last-prompt.txt`, follow lavish skill (`~/.agents/skills/lavish/SKILL.md`), then `wfw lavish <artifact>` + poll.
 

@@ -57,7 +57,7 @@ canonical_path() {
 }
 
 parse_worktree() {
-  sed -n 's/^Ready in worktree: //p'
+  sed -n -e 's/^Ready in worktree: //p' -e 's/^cd //p'
 }
 
 TEST_DIR="$(mktemp -d)"

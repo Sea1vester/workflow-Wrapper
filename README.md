@@ -92,16 +92,16 @@ npm run install-mcp
 ```bash
 cd ~/CodingFun/trainingDroid
 wfw start auth-refactor
+cd <path printed by wfw start>
 ```
 
-Creates `treehouse.toml` at the repo root (if missing), `my_team_workspace/`, shared Lavish plan, treehouse lease, and `lavish_artifact.html` symlink to the shared plan.
+`wfw start` wires the shared team Lavish plan into your leased worktree automatically.
+You only work inside that worktree from here on.
 
 ### Step 3 - Plan (Lavish)
 
 ```bash
 wfw plan "Map OAuth login flow"
-# or
-wfw plan
 ```
 
 ### Step 4 - Build (gnhf, guardrailed)
@@ -110,13 +110,14 @@ wfw plan
 wfw auto "Implement the approved Lavish plan"
 ```
 
-12 iterations, 300k tokens max (`WFW_GNHF_MAX_ITERATIONS`, `WFW_GNHF_MAX_TOKENS`).
-
-### Step 5 - Validate (no-mistakes)
+### Step 5 - Ship (no-mistakes)
 
 ```bash
 wfw validate
 ```
+
+Run from inside your leased worktree.
+This pushes your branch through no-mistakes.
 
 ### Parallel teammates
 

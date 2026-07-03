@@ -7,6 +7,7 @@ ARTIFACT_LINK="lavish_artifact.html"
 PROMPT_FILE=".wfw/last-prompt.txt"
 GNHF_MAX_ITERATIONS="${WFW_GNHF_MAX_ITERATIONS:-12}"
 GNHF_MAX_TOKENS="${WFW_GNHF_MAX_TOKENS:-300000}"
+NO_MISTAKES_SKIP="${WFW_NO_MISTAKES_SKIP:-document}"
 
 require_cmd() {
   local cmd="$1"
@@ -16,19 +17,23 @@ require_cmd() {
   fi
 }
 
+wfw_verbose() {
+  [ "${WFW_VERBOSE:-0}" = "1" ]
+}
+
 usage() {
   cat <<'EOF'
 workflowWrapper (wfw) - hackathon orchestration CLI
 
 Integration layer for treehouse + lavish + gnhf + no-mistakes.
-Prefix any underlying tool command with wfw to run it through this wrapper.
+All shared Lavish plan wiring is handled automatically by wfw start.
 
 Workflow commands:
-  wfw start <feature-name>       Bootstrap workspace, shared Lavish plan, lease treehouse worktree
-  wfw plan [prompt]              Open Lavish artifact; with prompt, queue /lavish-style build
+  wfw start <feature-name>       Lease a treehouse worktree (shared team plan wired in)
+  wfw plan [prompt]              Open or build the team Lavish plan
   wfw prompt "<prompt>"          Same as wfw plan "<prompt>"
   wfw auto "<objective>"         Run gnhf with guardrails in current worktree
-  wfw validate                   git push no-mistakes HEAD (worktree required)
+  wfw validate                   Ship current branch through no-mistakes (worktree required)
 
 Passthrough commands (full CLI retained):
   wfw treehouse <args>           e.g. wfw treehouse status
@@ -36,41 +41,92 @@ Passthrough commands (full CLI retained):
   wfw gnhf <args>                gnhf with guardrails applied
   wfw no-mistakes [validate]       Safe no-mistakes push from worktree
 
-Agent slash command (LLM agents, not the wfw terminal):
-  /wfw <command>                 For any LLM CLI that supports custom skills/slash commands
-                                 Install skill: npm run install-skill
-                                 e.g. /wfw prompt Build the auth flow
-
 gnhf guardrails (wfw auto and wfw gnhf):
   Defaults: --max-iterations 12, --max-tokens 300000
   Override: WFW_GNHF_MAX_ITERATIONS, WFW_GNHF_MAX_TOKENS
 
-Examples:
-  wfw start auth-refactor
-  wfw plan "Map the OAuth login flow"
-  wfw lavish lavish_artifact.html
-  wfw auto "Implement the approved plan"
-  wfw treehouse status
+no-mistakes validate (wfw validate):
+  Skips document step by default (override: WFW_NO_MISTAKES_SKIP, empty to disable)
+
+Typical flow (from your app repo):
+  wfw start my-feature
+  cd <printed-worktree-path>
+  wfw plan "What to build"
+  wfw auto "Implement the plan"
   wfw validate
 EOF
 }
 
 is_feature_worktree() {
-  [ -e "$ARTIFACT_LINK" ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 1
+  [ -L "$ARTIFACT_LINK" ] || [ -f "$ARTIFACT_LINK" ]
 }
 
 require_feature_worktree() {
   if ! is_feature_worktree; then
-    echo "Error: not inside a feature worktree." >&2
-    echo "Run 'wfw start <feature-name>' first, then cd into the leased worktree." >&2
+    echo "Error: not inside a leased feature worktree." >&2
+    echo "Run 'wfw start <feature-name>' from your app repo, then cd into the worktree it prints." >&2
     exit 1
   fi
+}
+
+require_git_repo() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "Error: wfw start must run inside a git repository." >&2
+    exit 1
+  fi
+}
+
+canonical_path() {
+  local path="$1"
+  local dir base
+  dir="$(dirname "$path")"
+  base="$(basename "$path")"
+  printf '%s/%s\n' "$(cd "$dir" && pwd -P)" "$base"
+}
+
+resolve_repo_root() {
+  local toplevel wt_path
+
+  toplevel="$(git rev-parse --show-toplevel)"
+
+  while IFS= read -r wt_line; do
+    if [ "$wt_line" = "worktree" ]; then
+      read -r wt_path
+      if [ -d "$wt_path/$WORKSPACE_DIR" ]; then
+        printf '%s\n' "$wt_path"
+        return
+      fi
+    fi
+  done < <(git worktree list --porcelain 2>/dev/null || true)
+
+  if [ -d "$toplevel/$WORKSPACE_DIR" ]; then
+    printf '%s\n' "$toplevel"
+    return
+  fi
+
+  printf '%s\n' "$toplevel"
+}
+
+shared_plan_path() {
+  local repo_root="$1"
+  printf '%s\n' "$(canonical_path "$repo_root/$WORKSPACE_DIR/$SHARED_PLAN")"
 }
 
 resolve_lavish_artifact() {
   if is_feature_worktree; then
     printf '%s\n' "$ARTIFACT_LINK"
     return
+  fi
+
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local repo_root plan
+    repo_root="$(resolve_repo_root)"
+    plan="$repo_root/$WORKSPACE_DIR/$SHARED_PLAN"
+    if [ -f "$plan" ]; then
+      printf '%s\n' "$plan"
+      return
+    fi
   fi
 
   if [ -f "$WORKSPACE_DIR/$SHARED_PLAN" ]; then
@@ -84,17 +140,6 @@ resolve_lavish_artifact() {
     : >"$fallback"
   fi
   printf '%s\n' "$fallback"
-}
-
-require_git_repo() {
-  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    echo "Error: wfw start must run inside a git repository." >&2
-    exit 1
-  fi
-}
-
-resolve_repo_root() {
-  git rev-parse --show-toplevel
 }
 
 append_git_exclude_pattern() {
@@ -126,19 +171,39 @@ ensure_lavish_symlink() {
   local worktree_path="$1"
   local shared_plan_abs="$2"
   local link_path="$worktree_path/$ARTIFACT_LINK"
+  local expected_canonical current current_canonical
+
+  expected_canonical="$(canonical_path "$shared_plan_abs")"
 
   if [ -L "$link_path" ]; then
-    local current
     current="$(readlink "$link_path")"
-    if [ "$current" = "$shared_plan_abs" ]; then
+    if [ "${current#/}" != "$current" ]; then
+      current_canonical="$(canonical_path "$current")"
+    else
+      current_canonical="$(canonical_path "$worktree_path/$current")"
+    fi
+    if [ "$current_canonical" = "$expected_canonical" ]; then
       return
     fi
     rm -f "$link_path"
+  elif [ -d "$link_path" ]; then
+    rm -rf "$link_path"
   elif [ -e "$link_path" ]; then
     rm -f "$link_path"
   fi
 
   ln -s "$shared_plan_abs" "$link_path"
+}
+
+ensure_treehouse_config() {
+  if [ -f "treehouse.toml" ]; then
+    return
+  fi
+  if [ -f "$WORKSPACE_DIR/treehouse.toml" ]; then
+    mv "$WORKSPACE_DIR/treehouse.toml" "treehouse.toml"
+    return
+  fi
+  treehouse init
 }
 
 print_first_start_setup() {
@@ -156,17 +221,28 @@ EOF
 
 run_gnhf_guarded() {
   require_cmd gnhf
-  echo "gnhf guardrails: max-iterations=$GNHF_MAX_ITERATIONS, max-tokens=$GNHF_MAX_TOKENS" >&2
+  if wfw_verbose; then
+    echo "gnhf guardrails: max-iterations=$GNHF_MAX_ITERATIONS, max-tokens=$GNHF_MAX_TOKENS" >&2
+  fi
   exec gnhf \
     --max-iterations "$GNHF_MAX_ITERATIONS" \
     --max-tokens "$GNHF_MAX_TOKENS" \
     "$@"
 }
 
+run_no_mistakes_push() {
+  require_cmd git
+  local -a push_args=()
+  if [ -n "$NO_MISTAKES_SKIP" ]; then
+    push_args+=(--push-option "no-mistakes.skip=$NO_MISTAKES_SKIP")
+  fi
+  exec git push "${push_args[@]}" no-mistakes HEAD "$@"
+}
+
 cmd_start() {
   local feature_name="${1:-}"
   local first_start=false
-  local repo_root
+  local repo_root shared_plan_abs worktree_path
 
   if [ -z "$feature_name" ]; then
     echo "Error: feature name is required." >&2
@@ -180,10 +256,7 @@ cmd_start() {
   repo_root="$(resolve_repo_root)"
   cd "$repo_root"
 
-  # treehouse.toml lives at the git repo root, not inside my_team_workspace.
-  if [ ! -f "treehouse.toml" ]; then
-    treehouse init
-  fi
+  ensure_treehouse_config
 
   if [ ! -d "$WORKSPACE_DIR" ]; then
     mkdir -p "$WORKSPACE_DIR"
@@ -198,9 +271,7 @@ cmd_start() {
     : >"$WORKSPACE_DIR/$SHARED_PLAN"
   fi
 
-  local shared_plan_abs worktree_path
-  shared_plan_abs="$(cd "$repo_root/$WORKSPACE_DIR" && pwd -P)/$SHARED_PLAN"
-
+  shared_plan_abs="$(shared_plan_path "$repo_root")"
   append_shared_plan_git_exclude "$repo_root"
 
   worktree_path="$(treehouse get --lease --lease-holder "$feature_name")"
@@ -215,9 +286,11 @@ cmd_start() {
     append_git_exclude
   )
 
-  echo "Ready in worktree: $worktree_path"
-  echo "Shared plan symlink: $ARTIFACT_LINK -> $shared_plan_abs"
-  echo "Next: wfw plan or wfw plan \"<what to build>\""
+  echo "cd $worktree_path"
+  echo "Then: wfw plan"
+  if wfw_verbose; then
+    echo "Shared plan: $ARTIFACT_LINK -> $shared_plan_abs"
+  fi
 }
 
 cmd_prompt() {
@@ -234,18 +307,12 @@ cmd_prompt() {
   mkdir -p .wfw
   printf '%s\n' "$prompt_text" >"$PROMPT_FILE"
 
-  cat <<EOF
+  if wfw_verbose; then
+    cat <<EOF
 Lavish prompt queued in $PROMPT_FILE
-Artifact target: $artifact
-
-Agent workflow (same as /lavish):
-  1. Read $PROMPT_FILE and build or update the HTML artifact
-  2. Run: wfw lavish "$artifact"
-  3. Run: wfw lavish poll "$artifact" (leave running for review)
-
-Or invoke in your LLM: /wfw prompt $prompt_text
-
+Artifact: $artifact
 EOF
+  fi
 
   require_cmd npx
   exec npx -y lavish-axi "$artifact"
@@ -278,8 +345,7 @@ cmd_auto() {
 
 cmd_validate() {
   require_feature_worktree
-  require_cmd git
-  exec git push no-mistakes HEAD
+  run_no_mistakes_push
 }
 
 cmd_passthrough_treehouse() {
@@ -307,8 +373,7 @@ cmd_passthrough_no_mistakes() {
         shift
       fi
       require_feature_worktree
-      require_cmd git
-      exec git push no-mistakes HEAD "$@"
+      run_no_mistakes_push "$@"
       ;;
     *)
       echo "Error: unknown no-mistakes subcommand '${1:-}'." >&2
