@@ -24,7 +24,7 @@ const server = new McpServer({
     name: "wfw",
     version: "1.0.0",
 });
-server.tool("wfw_start", "Bootstrap team workspace and lease a treehouse worktree (wfw start)", {
+server.tool("wfw_start", "Bootstrap team workspace, shared Lavish plan symlink, and lease a treehouse worktree (wfw start)", {
     feature: z.string().describe("Feature name for treehouse --lease-holder"),
     project_root: projectRootSchema,
 }, async ({ feature, project_root }) => invokeWfw(["start", feature], project_root));

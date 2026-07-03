@@ -12,6 +12,8 @@ $ARGUMENTS
 
 First token = subcommand; rest = args. Run matching shell via `wfw` (terminal CLI).
 
+**Primary value:** one shared Lavish plan across parallel worktrees. Each `wfw start <feature>` leases a separate treehouse worktree, but every worktree gets `lavish_artifact.html` as a symlink to `my_team_workspace/shared_lavish_plan.html`. Edits from any lease are visible to all teammates immediately. `treehouse.toml` is created at the git repo root (not inside `my_team_workspace`).
+
 **Routes:** `start <feature>` | `plan` / `plan <prompt>` / `prompt <text>` | `auto "<obj>"` | `validate` | `treehouse …` | `lavish …` | `gnhf …` | `no-mistakes`
 
 **Worktree required** for `auto`, `validate`, and open-only `plan`. Need `lavish_artifact.html` → else tell user `wfw start <feature>`.

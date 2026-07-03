@@ -93,7 +93,7 @@ cd ~/CodingFun/trainingDroid
 wfw start auth-refactor
 ```
 
-Creates `my_team_workspace/`, shared Lavish plan, treehouse lease, and `lavish_artifact.html` symlink.
+Creates `treehouse.toml` at the repo root (if missing), `my_team_workspace/`, shared Lavish plan, treehouse lease, and `lavish_artifact.html` symlink to the shared plan.
 
 ### Step 3 - Plan (Lavish)
 
@@ -119,7 +119,7 @@ wfw validate
 
 ### Parallel teammates
 
-Each person runs `wfw start <their-feature>`. All worktrees share `shared_lavish_plan.html`.
+Each person runs `wfw start <their-feature>` from the same app repo. All worktrees get `lavish_artifact.html` symlinks to the same `my_team_workspace/shared_lavish_plan.html`.
 
 ## Terminal commands
 
@@ -155,4 +155,5 @@ workflow-wrapper/
   bin/hack-wrap.sh      # wfw CLI
   bin/install-mcp.sh    # MCP client config
   mcp/                  # wfw-mcp server (stdio)
+  tests/integration/    # shared Lavish plan checks (npm run test:integration)
 ```

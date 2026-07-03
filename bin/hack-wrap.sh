@@ -24,7 +24,7 @@ Integration layer for treehouse + lavish + gnhf + no-mistakes.
 Prefix any underlying tool command with wfw to run it through this wrapper.
 
 Workflow commands:
-  wfw start <feature-name>       Bootstrap workspace, lease treehouse worktree
+  wfw start <feature-name>       Bootstrap workspace, shared Lavish plan, lease treehouse worktree
   wfw plan [prompt]              Open Lavish artifact; with prompt, queue /lavish-style build
   wfw prompt "<prompt>"          Same as wfw plan "<prompt>"
   wfw auto "<objective>"         Run gnhf with guardrails in current worktree
