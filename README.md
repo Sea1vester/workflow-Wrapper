@@ -2,11 +2,43 @@
 
 Hackathon CLI that integrates **treehouse**, **lavish**, **gnhf**, and **no-mistakes**.
 
-## Install
+## Install (once per machine)
+
+`workflow-wrapper` is its **own npm package** - separate from your app repo (e.g. `trainingDroid`).
+You do not run `npm link` inside your project unless that project *is* workflow-wrapper.
+
+### 1. Get workflow-wrapper
+
+Clone it once anywhere on your machine:
+
+```bash
+git clone https://github.com/Sea1vester/workflow-Wrapper.git ~/tools/workflow-wrapper
+cd ~/tools/workflow-wrapper
+```
+
+(Or `cd` into an existing checkout such as `optimizeWrkFlow`.)
+
+### 2. Link the CLI globally
 
 ```bash
 npm link
-npm run install-skill   # installs /wfw agent skill for Cursor
+```
+
+This puts the `wfw` command on your `PATH` for all terminals.
+
+### 3. Install the agent skill (optional)
+
+```bash
+npm run install-skill
+```
+
+Copies the `/wfw` skill into `~/.agents/skills/wfw/` (override with `WFW_SKILL_DIR`).
+
+### 4. Use it in your app repo
+
+```bash
+cd ~/CodingFun/trainingDroid   # your project - any git repo
+wfw start my-feature
 ```
 
 Prerequisites on PATH: `treehouse`, `gnhf`, `git` (with `no-mistakes` remote), `node`/`npm`.
@@ -19,15 +51,19 @@ Terminal commands and LLM slash commands are shown together.
 ### Step 1 - Install (once per machine)
 
 ```bash
+cd ~/tools/workflow-wrapper   # the workflow-wrapper repo, not your app
 npm link
 npm run install-skill
 ```
 
-This gives you `wfw` in the terminal and `/wfw` in Cursor, OpenCode, Claude Code, or Gemini CLI.
+This gives you `wfw` in the terminal and `/wfw` in any LLM agent that loads skills.
 
 ### Step 2 - Lease a worktree (per feature)
 
+From **your app repo**:
+
 ```bash
+cd ~/CodingFun/trainingDroid
 wfw start auth-refactor
 ```
 
@@ -98,7 +134,7 @@ wfw no-mistakes validate
 
 ## Agent slash commands (LLM CLIs)
 
-For **Cursor, OpenCode, Claude Code, Gemini CLI**, etc. - not the terminal `wfw` binary:
+For your LLM agent's slash-command interface - not the terminal `wfw` binary:
 
 ```
 /wfw start my-feature

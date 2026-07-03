@@ -36,8 +36,8 @@ Passthrough commands (full CLI retained):
   wfw gnhf <args>                gnhf with guardrails applied
   wfw no-mistakes [validate]       Safe no-mistakes push from worktree
 
-Agent slash command (LLM CLIs, not the wfw terminal):
-  /wfw <command>                 For Cursor, OpenCode, Claude Code, Gemini CLI, etc.
+Agent slash command (LLM agents, not the wfw terminal):
+  /wfw <command>                 For any LLM CLI that supports custom skills/slash commands
                                  Install skill: npm run install-skill
                                  e.g. /wfw prompt Build the auth flow
 
