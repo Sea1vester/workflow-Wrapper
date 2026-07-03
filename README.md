@@ -1,54 +1,24 @@
 # workflowWrapper (wfw)
 
-Hackathon CLI that integrates **treehouse**, **lavish**, **gnhf**, and **no-mistakes** into one workflow.
+CLI that integrates **treehouse**, **lavish**, **gnhf**, and **no-mistakes** into one workflow.
 
 Use the **terminal CLI** (`wfw`) or the **MCP server** (`wfw-mcp`) from any LLM client that supports Model Context Protocol.
 
-## Typical end-user flow
-
-This is the happy path for one teammate building and shipping a feature.
-You never manage symlinks, shared plan paths, or tool wiring yourself - `wfw start` does that once.
-
-```bash
-# 1. From your app repo (not workflow-wrapper)
-cd ~/CodingFun/my-app
-wfw start auth-refactor
-cd /path/printed/by/wfw/start
-
-# 2. Plan with the team (Lavish) - same HTML plan for every parallel lease
-wfw plan "Map the OAuth login flow and edge cases"
-
-# 3. Build in this leased worktree (guardrailed gnhf)
-wfw auto "Implement the approved Lavish plan"
-
-# 4. Ship this branch through no-mistakes
-wfw validate
-```
-
-**Parallel teammates:** each person runs `wfw start <their-feature>` from the same app repo, then `cd` into their own worktree.
-Everyone reads and edits the same live plan file without git commits or copy/paste between branches.
-
-```bash
-# Alice
-wfw start auth-refactor
-cd <alice-worktree>
-wfw plan "OAuth provider matrix"
-
-# Bob (same app repo, different lease)
-wfw start api-hardening
-cd <bob-worktree>
-wfw plan   # sees Alice's updates immediately
-```
-
-After `wfw validate`, review and merge the PR no-mistakes opens.
 
 ## Why use wfw
 
 **Primary value: one shared Lavish plan across parallel treehouse worktrees.**
 
-When teammates each run `wfw start <feature>` from the same app repo, treehouse leases separate worktrees.
-Every worktree gets `lavish_artifact.html` wired to the same team file: `my_team_workspace/shared_lavish_plan.html`.
-Edits from any lease (or `wfw plan` from any worktree) are visible to everyone immediately.
+When agents each run `wfw start <feature>` from the same app repo, treehouse leases separate worktrees.
+Every worktree gets `lavish_artifact.html` wired to the same file: `shared_lavish_plan.html`.
+Edits from any lease (or `wfw plan` from any worktree) are visible to every agent immediately.
+```
+  One laptop, one app repo
+  ├── Agent/session A  →  treehouse lease "auth"
+  ├── Agent/session B  →  treehouse lease "api"
+  └── Both read/write the same
+  shared_lavish_plan.html instantly
+```
 Nothing from the plan enters git - wfw adds the right `.git/info/exclude` entries on `wfw start`.
 
 wfw also wraps the four tools behind a small command set, applies gnhf guardrails by default (12 iterations, 300k tokens), and skips the slow no-mistakes document step on `wfw validate` unless you override it.
@@ -129,7 +99,7 @@ git clone https://github.com/Sea1vester/workflow-Wrapper.git ~/tools/workflow-wr
 cd ~/tools/workflow-wrapper
 npm link
 npm run install-skill    # /wfw slash commands for Cursor, Gemini, agents
-npm run install-mcp      # wfw-mcp for MCP-capable LLM clients
+npm run install-mcp      # wfw-mcp for MCP-capable LLM clients, restart your llm client
 ```
 
 This puts `wfw` and `wfw-mcp` on your PATH.
@@ -158,14 +128,14 @@ Set `WFW_PROJECT_ROOT` if your MCP client's cwd is not the project directory.
 | Command | What it does |
 |---------|--------------|
 | `wfw start <feature>` | Lease a treehouse worktree; wire shared team Lavish plan (prints `cd <path>`) |
-| `wfw plan [prompt]` | Open or build the team plan via lavish-axi |
+| `wfw plan [prompt]` | Open or build the plan via lavish-axi |
 | `wfw prompt "<text>"` | Same as `wfw plan "<text>"` |
 | `wfw auto "<objective>"` | Run gnhf in current worktree (guardrailed) |
 | `wfw validate` | Push current branch through no-mistakes (from leased worktree) |
 
 `wfw plan`, `wfw auto`, and `wfw validate` require you to be inside a leased worktree (after `cd` into the path from `wfw start`).
 
-### Passthrough commands (full underlying CLIs)
+### Passthrough commands (use lavish, treehouse, gnhf, no-mistake commands directly)
 
 | Command | What it does |
 |---------|--------------|
@@ -185,8 +155,6 @@ Set `WFW_PROJECT_ROOT` if your MCP client's cwd is not the project directory.
 | `WFW_PROJECT_ROOT` | cwd | Project directory for MCP tools |
 
 ## MCP tools (LLM-agnostic)
-
-After `npm run install-mcp`, restart your LLM client.
 
 | Tool | Action |
 |------|--------|
@@ -208,7 +176,7 @@ Gemini slash commands: `/wfw`, `/wfw:start`, `/wfw:plan`, `/wfw:auto`, `/wfw:val
 <app-repo>/
   treehouse.toml
   my_team_workspace/
-    shared_lavish_plan.html     # one live team plan (git-ignored)
+    shared_lavish_plan.html     # one live master plan, syncs in real time (git-ignored)
 
 <leased-worktree-alice>/
   lavish_artifact.html          # symlink -> shared plan (git-ignored)
@@ -219,7 +187,7 @@ Gemini slash commands: `/wfw`, `/wfw:start`, `/wfw:plan`, `/wfw:auto`, `/wfw:val
   ... bob's feature code ...
 ```
 
-Users work only inside their leased worktree after `wfw start`.
+Agents work only inside their leased worktree after `wfw start`.
 The parent `my_team_workspace/` path is an implementation detail they do not need to open.
 
 ## Verify the shared plan (developers)
@@ -242,3 +210,41 @@ workflow-wrapper/
   tests/integration/         # shared Lavish plan checks
   .no-mistakes.yaml          # test/lint commands for no-mistakes gate
 ```
+
+## Typical end-user flow
+
+This is the happy path for one teammate building and shipping a feature.
+You never manage symlinks, shared plan paths, or tool wiring yourself - `wfw start` does that once.
+
+```bash
+# 1. From your app repo
+cd ~/CodingFun/my-app
+wfw start auth-refactor
+cd /path/printed/by/wfw/start
+
+# 2 Plan (Lavish) - same HTML plan for every parallel lease
+wfw plan "Map the OAuth login flow and edge cases"
+
+# 3. Build in this leased worktree (guardrailed gnhf)
+wfw auto "Implement the approved Lavish plan"
+
+# 4. Ship this branch through no-mistakes
+wfw validate
+```
+
+**Parallel agents:** each person runs `wfw start <their-feature>` from the same app repo, then `cd` into their own worktree.
+Everyone reads and edits the same live plan file without git commits or copy/paste between branches.
+
+```bash
+# Agent1
+wfw start auth-refactor
+cd <alice-worktree>
+wfw plan "OAuth provider matrix"
+
+# Agent2 (same app repo, different lease)
+wfw start api-hardening
+cd <bob-worktree>
+wfw plan   # sees Agent1's updates immediately
+```
+
+After `wfw validate`, review and merge the PR no-mistakes opens.
