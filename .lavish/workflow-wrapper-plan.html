@@ -112,19 +112,34 @@ flowchart TD
               </thead>
               <tbody>
                 <tr>
-                  <td><code class="font-mono text-xs">wfw plan</code></td>
-                  <td><span class="badge badge-success badge-sm">worktree</span></td>
-                  <td class="text-xs font-mono">npx -y lavish-axi lavish_artifact.html</td>
+                  <td><code class="font-mono text-xs">wfw plan [prompt]</code></td>
+                  <td><span class="badge badge-ghost badge-sm">optional</span></td>
+                  <td class="text-xs font-mono">lavish-axi; with prompt = /lavish-style build</td>
                 </tr>
                 <tr>
                   <td><code class="font-mono text-xs">wfw auto "..."</code></td>
                   <td><span class="badge badge-success badge-sm">worktree</span></td>
-                  <td class="text-xs font-mono">gnhf "objective"</td>
+                  <td class="text-xs font-mono">gnhf --max-iterations 12 --max-tokens 30000</td>
                 </tr>
                 <tr>
                   <td><code class="font-mono text-xs">wfw validate</code></td>
                   <td><span class="badge badge-success badge-sm">worktree</span></td>
                   <td class="text-xs font-mono">git push no-mistakes HEAD</td>
+                </tr>
+                <tr>
+                  <td><code class="font-mono text-xs">wfw treehouse ...</code></td>
+                  <td><span class="badge badge-ghost badge-sm">passthrough</span></td>
+                  <td class="text-xs font-mono">full treehouse CLI</td>
+                </tr>
+                <tr>
+                  <td><code class="font-mono text-xs">wfw lavish ...</code></td>
+                  <td><span class="badge badge-ghost badge-sm">passthrough</span></td>
+                  <td class="text-xs font-mono">full lavish-axi CLI</td>
+                </tr>
+                <tr>
+                  <td><code class="font-mono text-xs">wfw gnhf ...</code></td>
+                  <td><span class="badge badge-warning badge-sm">guarded</span></td>
+                  <td class="text-xs font-mono">gnhf with same guardrails</td>
                 </tr>
               </tbody>
             </table>
@@ -132,6 +147,33 @@ flowchart TD
           <p class="text-sm text-base-content/70 mt-2">
             Worktree detection: <code class="kbd kbd-xs">lavish_artifact.html</code> exists and cwd is inside a git work tree.
           </p>
+          <div role="alert" class="alert alert-warning alert-soft mt-4 text-sm">
+            <div class="min-w-0">
+              <h3 class="font-bold">gnhf guardrails (wfw auto and wfw gnhf)</h3>
+              <p class="mt-1">
+                Always passes
+                <code class="kbd kbd-xs">--max-iterations 12</code> and
+                <code class="kbd kbd-xs">--max-tokens 30000</code>.
+              </p>
+              <p class="mt-2">
+                Override via
+                <code class="kbd kbd-xs">WFW_GNHF_MAX_ITERATIONS</code> /
+                <code class="kbd kbd-xs">WFW_GNHF_MAX_TOKENS</code>.
+              </p>
+            </div>
+          </div>
+          <div role="alert" class="alert alert-info alert-soft mt-4 text-sm">
+            <div class="min-w-0">
+              <h3 class="font-bold">Terminal + LLM slash commands</h3>
+              <p class="mt-1">
+                Download via <code class="kbd kbd-xs">npm link</code> + <code class="kbd kbd-xs">npm run install-skill</code>.
+                Agents get <code class="kbd kbd-xs">/wfw start</code>, <code class="kbd kbd-xs">/wfw prompt</code>, <code class="kbd kbd-xs">/wfw auto</code>, etc.
+              </p>
+              <p class="mt-2">
+                <code class="kbd kbd-xs">wfw plan "..."</code> queues a Lavish build like <code class="kbd kbd-xs">/lavish</code> on the shared plan artifact.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

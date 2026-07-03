@@ -1,10 +1,17 @@
 {
   "name": "workflow-wrapper",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Hackathon CLI orchestration layer for treehouse, lavish, gnhf, and no-mistakes",
   "bin": {
     "wfw": "./bin/hack-wrap.sh"
   },
+  "scripts": {
+    "install-skill": "mkdir -p \"$HOME/.cursor/skills/wfw\" && cp skills/wfw/SKILL.md \"$HOME/.cursor/skills/wfw/SKILL.md\" && echo \"Installed /wfw skill to ~/.cursor/skills/wfw/\""
+  },
+  "files": [
+    "bin",
+    "skills"
+  ],
   "keywords": [
     "cli",
     "workflow",
