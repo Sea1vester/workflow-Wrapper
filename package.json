@@ -10,7 +10,8 @@
     "build:mcp": "npm --prefix mcp install && npm --prefix mcp run build",
     "prepare": "npm run build:mcp",
     "install-mcp": "bash bin/install-mcp.sh",
-    "install-skill": "bash bin/install-skill.sh"
+    "install-skill": "bash bin/install-skill.sh",
+    "test:integration": "bash tests/integration/test-shared-lavish-plan.sh"
   },
   "files": [
     "bin",

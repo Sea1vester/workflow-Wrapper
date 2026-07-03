@@ -129,6 +129,11 @@ cmd_start() {
 
   require_cmd treehouse
 
+  # treehouse.toml lives at the git repo root, not inside my_team_workspace.
+  if [ ! -f "treehouse.toml" ]; then
+    treehouse init
+  fi
+
   if [ ! -d "$WORKSPACE_DIR" ]; then
     mkdir -p "$WORKSPACE_DIR"
     first_start=true
@@ -141,10 +146,6 @@ cmd_start() {
 
   if [ ! -f "$SHARED_PLAN" ]; then
     : >"$SHARED_PLAN"
-  fi
-
-  if [ ! -f "treehouse.toml" ]; then
-    treehouse init
   fi
 
   local workspace_root shared_plan_abs worktree_path

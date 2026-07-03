@@ -4,6 +4,39 @@ Hackathon CLI that integrates **treehouse**, **lavish**, **gnhf**, and **no-mist
 
 Use the **terminal CLI** (`wfw`) or the **MCP server** (`wfw-mcp`) from any LLM client that supports Model Context Protocol.
 
+## Why use wfw
+
+**Primary value: one shared Lavish plan across parallel worktrees.**
+
+When teammates each run `wfw start <feature>` from the same app repo, treehouse leases separate worktrees, but every worktree gets `lavish_artifact.html` as a symlink to the same file: `my_team_workspace/shared_lavish_plan.html`. Edit the plan from any lease (or via `wfw plan` / `lavish-axi` on either symlink) and everyone sees the update immediately - no git commit, no copy/paste between branches. The symlink is listed in each worktree's `.git/info/exclude` so it never enters version control.
+
+wfw also unifies treehouse, lavish, gnhf, and no-mistakes behind high-level commands, with gnhf guardrails (12 iterations, 300k tokens by default) as a secondary safety layer.
+
+## Why not just use the 4 tools individually
+
+Using treehouse, lavish, gnhf, and no-mistakes separately means manually coordinating leases, artifacts, and guardrails. You would need to wire up your own shared plan path and keep parallel worktrees in sync. wfw does that wiring once: shared plan + symlinks + git exclude on every `wfw start`.
+
+## Verify the shared plan (integration test)
+
+Requires `wfw` and `treehouse` on PATH (treehouse cannot run in all CI environments; the script skips when missing).
+
+```bash
+cd workflow-wrapper
+npm run test:integration
+```
+
+Manual E2E from any git repo:
+
+```bash
+wfw start feature-a    # note worktree path A
+wfw start feature-b    # note worktree path B (must differ)
+readlink <A>/lavish_artifact.html   # same absolute path as B's symlink
+echo test >> <A>/lavish_artifact.html
+tail -1 <B>/lavish_artifact.html    # shows "test"
+grep lavish_artifact.html <A>/.git/info/exclude
+cd <A> && wfw plan                   # opens lavish-axi on lavish_artifact.html
+```
+
 ## Install (once per machine)
 
 `workflow-wrapper` is its own npm package - not your app repo.
@@ -105,11 +138,14 @@ wfw no-mistakes validate
 ## Layout
 
 ```
-my_team_workspace/
-  shared_lavish_plan.html
+<app-repo>/
   treehouse.toml
-<leased-worktree>/
-  lavish_artifact.html -> shared plan
+  my_team_workspace/
+    shared_lavish_plan.html
+<leased-worktree-A>/
+  lavish_artifact.html -> <abs path>/my_team_workspace/shared_lavish_plan.html
+<leased-worktree-B>/
+  lavish_artifact.html -> same absolute path
 ```
 
 ## Package layout
