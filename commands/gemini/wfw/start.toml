@@ -1,9 +1,11 @@
-description = "Lease a treehouse worktree and set up Lavish symlink (wfw start)"
+description = "Bootstrap shared Lavish plan, treehouse.toml, and lease worktree (wfw start)"
 prompt = """
 Run workflowWrapper start for feature: {{args}}
 
 Execute in the terminal:
 !{wfw start {{args}}}
+
+Creates treehouse.toml at the repo root (if missing), my_team_workspace/shared_lavish_plan.html, and lavish_artifact.html as a symlink to that shared plan in the leased worktree. Parallel teammates each get their own worktree but share the same plan file.
 
 Report the worktree path and tell the user to run /wfw:plan next.
 """
