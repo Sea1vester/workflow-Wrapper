@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # Integration test: shared Lavish plan across parallel treehouse leases.
-# Requires: wfw on PATH, treehouse on PATH, git.
+# Requires: repo bin/hack-wrap.sh, treehouse on PATH, git.
 # Skips gracefully when treehouse is unavailable.
 set -euo pipefail
 
-if ! command -v wfw >/dev/null 2>&1; then
-  echo "SKIP: wfw not on PATH"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+WFW_BIN="$REPO_ROOT/bin/hack-wrap.sh"
+
+if [ ! -x "$WFW_BIN" ]; then
+  echo "SKIP: $WFW_BIN not found or not executable"
   exit 0
 fi
 
@@ -14,7 +18,6 @@ if ! command -v treehouse >/dev/null 2>&1; then
   exit 0
 fi
 
-WFW_BIN="$(command -v wfw)"
 TEST_DIR=""
 WORKTREE_A=""
 WORKTREE_B=""
@@ -57,8 +60,12 @@ git commit -q -m "init test repo"
 
 SHARED_PLAN="$TEST_DIR/my_team_workspace/shared_lavish_plan.html"
 
-OUT_A="$(wfw start feature-a 2>&1)" || fail "wfw start feature-a failed: $OUT_A"
-OUT_B="$(wfw start feature-b 2>&1)" || fail "wfw start feature-b failed: $OUT_B"
+OUT_A="$("$WFW_BIN" start feature-a 2>&1)" || fail "wfw start feature-a failed: $OUT_A"
+OUT_B="$("$WFW_BIN" start feature-b 2>&1)" || fail "wfw start feature-b failed: $OUT_B"
+
+[ -f "$TEST_DIR/treehouse.toml" ] || fail "treehouse.toml missing at repo root"
+[ ! -f "$TEST_DIR/my_team_workspace/treehouse.toml" ] || fail "treehouse.toml should not be under my_team_workspace"
+pass "treehouse.toml at repo root only"
 
 WORKTREE_A="$(printf '%s\n' "$OUT_A" | parse_worktree)"
 WORKTREE_B="$(printf '%s\n' "$OUT_B" | parse_worktree)"
