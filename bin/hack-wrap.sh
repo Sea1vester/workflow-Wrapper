@@ -212,7 +212,7 @@ print_first_start_setup() {
   cat <<'EOF'
 
 First-time setup - install once per machine:
-  wfw         npm link && npm run install-skill   (from the workflow-wrapper repo)
+  wfw         npm install -g github:Sea1vester/workflow-Wrapper
   treehouse   worktree pool manager (must be on PATH)
   gnhf        autonomous coding agent (must be on PATH)
   node + npm  required for wfw plan / wfw lavish (npx lavish-axi)

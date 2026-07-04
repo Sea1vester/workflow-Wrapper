@@ -1,15 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WFW_MCP_BIN="${WFW_MCP_BIN:-$(command -v wfw-mcp || true)}"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-if [ -z "$WFW_MCP_BIN" ]; then
-  echo "Error: wfw-mcp not found on PATH. Run 'npm link' from workflow-wrapper first." >&2
+resolve_wfw_mcp_bin() {
+  if [ -n "${WFW_MCP_BIN:-}" ]; then
+    printf '%s\n' "$WFW_MCP_BIN"
+    return
+  fi
+
+  if command -v wfw-mcp >/dev/null 2>&1; then
+    command -v wfw-mcp
+    return
+  fi
+
+  local bundled="$ROOT/mcp/dist/index.js"
+  if [ -f "$bundled" ]; then
+    printf '%s\n' "$bundled"
+    return
+  fi
+
+  echo "Error: wfw-mcp not found. Run 'npm install' in workflow-wrapper first." >&2
   exit 1
-fi
+}
 
-if ! command -v wfw >/dev/null 2>&1; then
-  echo "Error: wfw not found on PATH. Run 'npm link' from workflow-wrapper first." >&2
+WFW_MCP_BIN="$(resolve_wfw_mcp_bin)"
+WFW_MCP_BIN="$(cd "$(dirname "$WFW_MCP_BIN")" && pwd)/$(basename "$WFW_MCP_BIN")"
+
+if ! command -v wfw >/dev/null 2>&1 && [ ! -x "$ROOT/bin/hack-wrap.sh" ]; then
+  echo "Error: wfw not found. Run 'npm link' once from workflow-wrapper, then retry." >&2
   exit 1
 fi
 
@@ -40,7 +59,11 @@ merge_cursor_mcp() {
 
 echo "Installing wfw MCP server config..."
 echo "  wfw-mcp: $WFW_MCP_BIN"
-echo "  wfw:     $(command -v wfw)"
+if command -v wfw >/dev/null 2>&1; then
+  echo "  wfw:     $(command -v wfw)"
+else
+  echo "  wfw:     $ROOT/bin/hack-wrap.sh (run 'npm link' to put on PATH)"
+fi
 echo
 
 merge_cursor_mcp
@@ -50,5 +73,3 @@ echo "Gemini CLI (if installed):"
 echo "  gemini mcp add -s user wfw $WFW_MCP_BIN"
 echo
 echo "Claude Desktop: add the same command to your MCP config manually."
-echo
-echo "Restart your LLM client, then use wfw_start / wfw_plan / wfw_prompt / wfw_auto / wfw_validate tools and MCP prompts (wfw, wfw-start, wfw-plan, wfw-prompt, wfw-auto, wfw-validate)."

@@ -25,6 +25,6 @@ If missing, tell the user to run `wfw start <feature>` from the app repo and `cd
 
 **gnhf:** always via `wfw` with `--max-iterations 12 --max-tokens 300000` (env: `WFW_GNHF_MAX_*`).
 
-**Install:** `npm link && npm run install-skill` (from workflow-wrapper repo)
+**Install:** `npm install -g github:Sea1vester/workflow-Wrapper` (updates: rerun the same command).
 
 Slash commands differ per LLM CLI; terminal `wfw` works everywhere. See README.

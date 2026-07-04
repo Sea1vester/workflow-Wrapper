@@ -9,6 +9,7 @@
   "scripts": {
     "build:mcp": "npm --prefix mcp install && npm --prefix mcp run build",
     "prepare": "npm run build:mcp",
+    "postinstall": "bash bin/postinstall.sh",
     "install-mcp": "bash bin/install-mcp.sh",
     "install-skill": "bash bin/install-skill.sh",
     "test:integration": "bash tests/integration/test-shared-lavish-plan.sh"
@@ -29,5 +30,13 @@
     "gnhf",
     "no-mistakes"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sea1vester/workflow-Wrapper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Sea1vester/workflow-Wrapper/issues"
+  },
+  "homepage": "https://github.com/Sea1vester/workflow-Wrapper#readme"
 }

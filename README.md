@@ -94,15 +94,35 @@ Requires **git**, **gh** (GitHub CLI), and at least one agent CLI (e.g. Claude C
 
 ### 5. workflow-wrapper (wfw)
 
+Install globally from GitHub (recommended):
+
+```bash
+npm install -g github:Sea1vester/workflow-Wrapper
+```
+
+**Updates** - rerun install (fetches latest from GitHub):
+
+```bash
+npm install -g github:Sea1vester/workflow-Wrapper
+```
+
+Or, if you use a published npm release:
+
+```bash
+npm update -g workflow-wrapper
+```
+
+**Developers** (optional local clone):
+
 ```bash
 git clone https://github.com/Sea1vester/workflow-Wrapper.git ~/tools/workflow-wrapper
 cd ~/tools/workflow-wrapper
+npm install
 npm link
-npm run install-skill    # /wfw slash commands for Cursor, Gemini, agents
-npm run install-mcp      # wfw-mcp for MCP-capable LLM clients, restart your llm client
 ```
 
-This puts `wfw` and `wfw-mcp` on your PATH.
+Set `WFW_SKIP_POSTINSTALL=1` to skip skill/MCP refresh (e.g. CI).
+`npm run install-skill` and `npm run install-mcp` still work for a manual refresh.
 
 ### Verify install
 

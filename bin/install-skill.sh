@@ -49,4 +49,3 @@ echo
 echo "Terminal (all CLIs): wfw <subcommand>"
 echo
 echo "Gemini users: run /commands reload after install."
-echo "MCP tools: npm run install-mcp (registers wfw-mcp with supported clients)."
