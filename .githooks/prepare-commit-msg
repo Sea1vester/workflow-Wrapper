@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Strip Cursor commit attribution before the message is finalized.
+# Cursor injects Co-authored-by / Made-with trailers when attribution is enabled.
+set -euo pipefail
+
+msg_file="$1"
+tmp="$(mktemp)"
+grep -vE '^(Co-authored-by: Cursor <cursoragent@cursor.com>|Made-with: Cursor)$' "$msg_file" >"$tmp"
+mv "$tmp" "$msg_file"

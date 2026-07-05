@@ -1,0 +1,16 @@
+---
+description: Never add Cursor co-author or Made-with trailers to git commits
+alwaysApply: true
+---
+
+# No Cursor commit attribution
+
+Never add any of the following to commit messages, PR descriptions, or git trailers:
+
+- `Co-authored-by: Cursor <cursoragent@cursor.com>`
+- `Made-with: Cursor`
+- Any `--trailer` flag that adds Cursor attribution
+
+When committing, use plain messages only (`git commit -m "..."` or `-F file`).
+
+If attribution was added by the environment, amend it out before finishing the task.
