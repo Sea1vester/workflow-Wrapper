@@ -94,22 +94,30 @@ Requires **git**, **gh** (GitHub CLI), and at least one agent CLI (e.g. Claude C
 
 ### 5. workflow-wrapper (wfw)
 
-Install globally from GitHub (recommended):
+Install globally from GitHub:
 
 ```bash
 npm install -g github:Sea1vester/workflow-Wrapper
+wfw setup
 ```
 
 **Updates** - rerun install (fetches latest from GitHub):
 
 ```bash
 npm install -g github:Sea1vester/workflow-Wrapper
+wfw setup
 ```
+
+**Why not `prepare`/`postinstall` scripts?**
+npm has a [known bug](https://github.com/npm/cli/issues/6984) where global installs from git URLs fail or leave symlinks when lifecycle scripts are present.
+Major CLI tools avoid this by publishing tarballs to the npm registry (not git URLs) and shipping prebuilt artifacts.
+This package commits `mcp/dist/` and runs `wfw setup` after install instead.
 
 Or, if you use a published npm release:
 
 ```bash
-npm update -g workflow-wrapper
+npm install -g workflow-wrapper
+wfw setup
 ```
 
 **Developers** (optional local clone):

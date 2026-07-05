@@ -34,6 +34,7 @@ Workflow commands:
   wfw prompt "<prompt>"          Same as wfw plan "<prompt>"
   wfw auto "<objective>"         Run gnhf with guardrails in current worktree
   wfw validate                   Ship current branch through no-mistakes (worktree required)
+  wfw setup                      Refresh skills and MCP config (run once after install)
 
 Passthrough commands (full CLI retained):
   wfw treehouse <args>           e.g. wfw treehouse status
@@ -385,6 +386,23 @@ cmd_passthrough_no_mistakes() {
   esac
 }
 
+wfw_root() {
+  local src="${BASH_SOURCE[0]}"
+  while [ -L "$src" ]; do
+    local dir
+    dir="$(cd "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    case "$src" in /*) ;; *) src="$dir/$src" ;; esac
+  done
+  cd "$(dirname "$src")/.." && pwd
+}
+
+cmd_setup() {
+  local root
+  root="$(wfw_root)"
+  bash "$root/bin/postinstall.sh"
+}
+
 main() {
   local command="${1:-}"
 
@@ -407,6 +425,9 @@ main() {
       ;;
     validate)
       cmd_validate
+      ;;
+    setup)
+      cmd_setup
       ;;
     treehouse)
       shift

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "prepare": "npm run build",
+    "prepublishOnly": "npm run build",
     "test": "node --test dist/exec.test.js dist/prompts.test.js"
   },
   "dependencies": {

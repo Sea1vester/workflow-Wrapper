@@ -1,0 +1,1 @@
+{"sessionId":"17c5b8","hypothesisId":"B","location":"bin/postinstall.sh:entry","message":"postinstall lifecycle invoked","data":{"root":"/opt/homebrew/lib/node_modules/workflow-wrapper","npm_config_global":"","global_target":"/lib/node_modules/workflow-wrapper","global_target_type":"missing"},"timestamp":1783167725450,"runId":"pre-fix"}
