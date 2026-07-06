@@ -29,11 +29,39 @@ server.tool("wfw_start", "Bootstrap team workspace, shared Lavish plan symlink, 
     feature: z.string().describe("Feature name for treehouse --lease-holder"),
     project_root: projectRootSchema,
 }, async ({ feature, project_root }) => invokeWfw(["start", feature], project_root));
-server.tool("wfw_plan", "Open or queue a Lavish plan (wfw plan)", {
+server.tool("wfw_plan", "Open the team Lavish plan and long-poll for user feedback (wfw plan). After applying feedback, call again with agent_reply.", {
     prompt: z.string().optional().describe("Optional plan prompt for Lavish"),
+    agent_reply: z
+        .string()
+        .optional()
+        .describe("After applying prior poll feedback, poll again with this reply in the browser"),
+    open_only: z
+        .boolean()
+        .optional()
+        .describe("Open lavish-axi in the browser without polling (default false)"),
     project_root: projectRootSchema,
-}, async ({ prompt, project_root }) => {
-    const args = prompt ? ["plan", prompt] : ["plan"];
+}, async ({ prompt, agent_reply, open_only, project_root }) => {
+    if (prompt && agent_reply) {
+        return {
+            isError: true,
+            content: [
+                {
+                    type: "text",
+                    text: "Cannot combine prompt and agent_reply on wfw_plan.",
+                },
+            ],
+        };
+    }
+    const args = ["plan"];
+    if (open_only) {
+        args.push("--open-only");
+    }
+    if (agent_reply) {
+        args.push("--reply", agent_reply);
+    }
+    else if (prompt) {
+        args.push(prompt);
+    }
     return invokeWfw(args, project_root);
 });
 server.tool("wfw_prompt", "Queue a Lavish build prompt and open lavish-axi (wfw prompt)", {

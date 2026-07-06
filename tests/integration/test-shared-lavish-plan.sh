@@ -133,6 +133,10 @@ mkdir -p "$MOCK_BIN"
 cat >"$MOCK_BIN/npx" <<'EOF'
 #!/usr/bin/env bash
 if [ "$1" = "-y" ] && [ "$2" = "lavish-axi" ]; then
+  if [ "$3" = "poll" ]; then
+    echo "LAVISH_AXI_POLL=$4"
+    exit 0
+  fi
   echo "LAVISH_AXI_ARTIFACT=$3"
   exit 0
 fi
@@ -143,7 +147,8 @@ chmod +x "$MOCK_BIN/npx"
 
 PLAN_OUT="$(cd "$WORKTREE_A" && PATH="$MOCK_BIN:$PATH" "$WFW_BIN" plan 2>&1)" || fail "wfw plan failed: $PLAN_OUT"
 echo "$PLAN_OUT" | grep -q 'LAVISH_AXI_ARTIFACT=lavish_artifact.html' || fail "wfw plan did not open lavish_artifact.html: $PLAN_OUT"
-pass "wfw plan opens lavish-axi against worktree symlink"
+echo "$PLAN_OUT" | grep -q 'LAVISH_AXI_POLL=lavish_artifact.html' || fail "wfw plan did not poll lavish_artifact.html: $PLAN_OUT"
+pass "wfw plan opens lavish-axi and polls against worktree symlink"
 
 echo ""
 echo "All shared Lavish plan integration checks passed."

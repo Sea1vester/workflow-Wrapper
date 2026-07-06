@@ -144,7 +144,9 @@ Set `WFW_PROJECT_ROOT` if your MCP client's cwd is not the project directory.
 | Command | What it does |
 |---------|--------------|
 | `wfw start <feature>` | Lease a treehouse worktree; wire shared team Lavish plan (prints `cd <path>`) |
-| `wfw plan [prompt]` | Open or build the plan via lavish-axi |
+| `wfw plan [prompt]` | Open the team plan in lavish-axi and long-poll for feedback |
+| `wfw plan --reply "<text>"` | After applying feedback, poll again with your reply in the browser |
+| `wfw plan --open-only [prompt]` | Open browser only (skip poll) |
 | `wfw prompt "<text>"` | Same as `wfw plan "<text>"` |
 | `wfw auto "<objective>"` | Run gnhf in current worktree (guardrailed) |
 | `wfw validate` | Push current branch through no-mistakes (from leased worktree) |
@@ -175,7 +177,7 @@ Set `WFW_PROJECT_ROOT` if your MCP client's cwd is not the project directory.
 | Tool | Action |
 |------|--------|
 | `wfw_start` | `wfw start <feature>` |
-| `wfw_plan` | `wfw plan [prompt]` |
+| `wfw_plan` | `wfw plan [prompt]` (long-polls; use `agent_reply` to continue after feedback) |
 | `wfw_prompt` | `wfw prompt "<prompt>"` |
 | `wfw_auto` | `wfw auto "<objective>"` |
 | `wfw_validate` | `wfw validate` |

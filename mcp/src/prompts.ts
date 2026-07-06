@@ -70,7 +70,9 @@ User request: {{prompt}}
 If the user provided text, use wfw_plan with prompt="{{prompt}}".
 Otherwise use wfw_plan with no prompt.
 
-Follow the lavish workflow to build or update the team HTML artifact when a prompt was given.`,
+wfw plan opens lavish-axi and long-polls until the user annotates, queues a prompt, or ends the session.
+After you apply poll feedback, call wfw_plan again with agent_reply="<your summary>" to show your reply in the browser and poll again.
+Follow the lavish skill to build or update the team HTML artifact when a prompt was given.`,
         args,
       ),
   },
@@ -84,7 +86,8 @@ Follow the lavish workflow to build or update the team HTML artifact when a prom
 
 Use the wfw_prompt MCP tool with prompt="{{prompt}}".
 
-Writes .wfw/last-prompt.txt and opens lavish-axi on the shared plan artifact.`,
+Writes .wfw/last-prompt.txt, opens lavish-axi on the shared plan artifact, and long-polls for feedback.
+After applying feedback, use wfw_plan with agent_reply to continue the review loop.`,
         args,
       ),
   },

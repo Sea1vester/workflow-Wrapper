@@ -30,7 +30,9 @@ All shared Lavish plan wiring is handled automatically by wfw start.
 
 Workflow commands:
   wfw start <feature-name>       Lease a treehouse worktree (shared team plan wired in)
-  wfw plan [prompt]              Open or build the team Lavish plan
+  wfw plan [prompt]              Open team Lavish plan and poll for feedback
+  wfw plan --reply "<text>"      Poll again after applying feedback (lavish --agent-reply)
+  wfw plan --open-only [prompt]  Open browser only (no poll)
   wfw prompt "<prompt>"          Same as wfw plan "<prompt>"
   wfw auto "<objective>"         Run gnhf with guardrails in current worktree
   wfw validate                   Ship current branch through no-mistakes (worktree required)
@@ -296,6 +298,40 @@ cmd_start() {
   fi
 }
 
+lavish_open_only() {
+  local artifact="$1"
+  require_cmd npx
+  exec npx -y lavish-axi "$artifact"
+}
+
+lavish_poll() {
+  local artifact="$1"
+  local agent_reply="${2:-}"
+  require_cmd npx
+  if [ -n "$agent_reply" ]; then
+    exec npx -y lavish-axi poll "$artifact" --agent-reply "$agent_reply"
+  fi
+  exec npx -y lavish-axi poll "$artifact"
+}
+
+lavish_open_and_poll() {
+  local artifact="$1"
+  require_cmd npx
+  npx -y lavish-axi "$artifact"
+  exec npx -y lavish-axi poll "$artifact"
+}
+
+queue_plan_prompt() {
+  local prompt_text="$1"
+  mkdir -p .wfw
+  printf '%s\n' "$prompt_text" >"$PROMPT_FILE"
+  if wfw_verbose; then
+    cat <<EOF
+Lavish prompt queued in $PROMPT_FILE
+EOF
+  fi
+}
+
 cmd_prompt() {
   local prompt_text="${1:-}"
   local artifact
@@ -307,30 +343,69 @@ cmd_prompt() {
   fi
 
   artifact="$(resolve_lavish_artifact)"
-  mkdir -p .wfw
-  printf '%s\n' "$prompt_text" >"$PROMPT_FILE"
+  queue_plan_prompt "$prompt_text"
 
   if wfw_verbose; then
-    cat <<EOF
-Lavish prompt queued in $PROMPT_FILE
-Artifact: $artifact
-EOF
+    echo "Artifact: $artifact"
   fi
 
-  require_cmd npx
-  exec npx -y lavish-axi "$artifact"
+  lavish_open_and_poll "$artifact"
 }
 
 cmd_plan() {
-  if [ $# -gt 0 ]; then
-    cmd_prompt "$*"
-    return
+  local open_only=false
+  local reply=""
+  local -a prompt_parts=()
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --open-only)
+        open_only=true
+        shift
+        ;;
+      --reply)
+        shift
+        reply="${1:-}"
+        if [ -z "$reply" ]; then
+          echo "Error: --reply requires a message." >&2
+          exit 1
+        fi
+        shift
+        ;;
+      *)
+        prompt_parts+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  if [ ${#prompt_parts[@]} -gt 0 ] && [ -n "$reply" ]; then
+    echo "Error: cannot combine a plan prompt with --reply." >&2
+    exit 1
+  fi
+
+  if [ "$open_only" = true ] && [ -n "$reply" ]; then
+    echo "Error: cannot combine --open-only with --reply." >&2
+    exit 1
   fi
 
   local artifact
   artifact="$(resolve_lavish_artifact)"
-  require_cmd npx
-  exec npx -y lavish-axi "$artifact"
+
+  if [ ${#prompt_parts[@]} -gt 0 ]; then
+    queue_plan_prompt "${prompt_parts[*]}"
+    if wfw_verbose; then
+      echo "Artifact: $artifact"
+    fi
+  fi
+
+  if [ -n "$reply" ]; then
+    lavish_poll "$artifact" "$reply"
+  elif [ "$open_only" = true ]; then
+    lavish_open_only "$artifact"
+  else
+    lavish_open_and_poll "$artifact"
+  fi
 }
 
 cmd_auto() {
