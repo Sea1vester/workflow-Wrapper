@@ -81,7 +81,7 @@ server.tool(
 
 server.tool(
   "wfw_prompt",
-  "Queue a Lavish build prompt and open lavish-axi (wfw prompt)",
+  "Queue a Lavish build prompt only (wfw prompt). Build HTML, then call wfw_plan to open and poll.",
   {
     prompt: z.string().describe("Plan prompt text for Lavish"),
     project_root: projectRootSchema,

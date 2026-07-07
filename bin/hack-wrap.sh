@@ -30,10 +30,10 @@ All shared Lavish plan wiring is handled automatically by wfw start.
 
 Workflow commands:
   wfw start <feature-name>       Lease a treehouse worktree (shared team plan wired in)
-  wfw plan [prompt]              Open team Lavish plan and poll for feedback
-  wfw plan --reply "<text>"      Poll again after applying feedback (lavish --agent-reply)
+  wfw plan [prompt]              Queue prompt (if given), then open + poll for feedback
+  wfw plan --reply "<text>"      Post agent reply in Lavish and poll again for more feedback
   wfw plan --open-only [prompt]  Open browser only (no poll)
-  wfw prompt "<prompt>"          Same as wfw plan "<prompt>"
+  wfw prompt "<prompt>"          Queue plan prompt (then run wfw plan to open + poll)
   wfw auto "<objective>"         Run gnhf with guardrails in current worktree
   wfw validate                   Ship current branch through no-mistakes (worktree required)
   wfw setup                      Refresh skills and MCP config (run once after install)
@@ -304,20 +304,18 @@ lavish_open_only() {
   exec npx -y lavish-axi "$artifact"
 }
 
-lavish_poll() {
-  local artifact="$1"
-  local agent_reply="${2:-}"
-  require_cmd npx
-  if [ -n "$agent_reply" ]; then
-    exec npx -y lavish-axi poll "$artifact" --agent-reply "$agent_reply"
-  fi
-  exec npx -y lavish-axi poll "$artifact"
-}
-
 lavish_open_and_poll() {
   local artifact="$1"
   require_cmd npx
   npx -y lavish-axi "$artifact"
+  exec npx -y lavish-axi poll "$artifact"
+}
+
+lavish_reply_and_poll() {
+  local artifact="$1"
+  local agent_reply="$2"
+  require_cmd npx
+  npx -y lavish-axi poll "$artifact" --agent-reply "$agent_reply"
   exec npx -y lavish-axi poll "$artifact"
 }
 
@@ -332,9 +330,23 @@ EOF
   fi
 }
 
+print_plan_queued_next_step() {
+  local artifact="$1"
+  cat <<EOF
+Prompt queued in $PROMPT_FILE
+
+Next: build or update the Lavish HTML artifact ($artifact) using the lavish skill, then run:
+  wfw plan
+
+wfw plan opens lavish-axi and long-polls until the user sends feedback.
+After applying feedback, run:
+  wfw plan --reply "<summary of changes>"
+That posts your reply in the browser and polls again for more feedback.
+EOF
+}
+
 cmd_prompt() {
   local prompt_text="${1:-}"
-  local artifact
 
   if [ -z "$prompt_text" ]; then
     echo "Error: prompt is required." >&2
@@ -342,14 +354,10 @@ cmd_prompt() {
     exit 1
   fi
 
+  local artifact
   artifact="$(resolve_lavish_artifact)"
   queue_plan_prompt "$prompt_text"
-
-  if wfw_verbose; then
-    echo "Artifact: $artifact"
-  fi
-
-  lavish_open_and_poll "$artifact"
+  print_plan_queued_next_step "$artifact"
 }
 
 cmd_plan() {
@@ -394,13 +402,15 @@ cmd_plan() {
 
   if [ ${#prompt_parts[@]} -gt 0 ]; then
     queue_plan_prompt "${prompt_parts[*]}"
-    if wfw_verbose; then
-      echo "Artifact: $artifact"
+    if [ "$open_only" = true ]; then
+      lavish_open_only "$artifact"
     fi
+    print_plan_queued_next_step "$artifact"
+    return 0
   fi
 
   if [ -n "$reply" ]; then
-    lavish_poll "$artifact" "$reply"
+    lavish_reply_and_poll "$artifact" "$reply"
   elif [ "$open_only" = true ]; then
     lavish_open_only "$artifact"
   else

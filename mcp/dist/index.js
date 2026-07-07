@@ -64,7 +64,7 @@ server.tool("wfw_plan", "Open the team Lavish plan and long-poll for user feedba
     }
     return invokeWfw(args, project_root);
 });
-server.tool("wfw_prompt", "Queue a Lavish build prompt and open lavish-axi (wfw prompt)", {
+server.tool("wfw_prompt", "Queue a Lavish build prompt only (wfw prompt). Build HTML, then call wfw_plan to open and poll.", {
     prompt: z.string().describe("Plan prompt text for Lavish"),
     project_root: projectRootSchema,
 }, async ({ prompt, project_root }) => invokeWfw(["prompt", prompt], project_root));

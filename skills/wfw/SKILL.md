@@ -21,7 +21,12 @@ Users `cd` into the printed worktree, then use `wfw plan`, `wfw auto`, and `wfw 
 **Worktree required** for `auto`, `validate`, and `plan`/`prompt` with lavish-axi.
 If missing, tell the user to run `wfw start <feature>` from the app repo and `cd` into the path it prints.
 
-**`plan` / `prompt`:** opens lavish-axi on the team artifact (`lavish_artifact.html`) and **long-polls** for user feedback. With text, queues `.wfw/last-prompt.txt` first; follow lavish skill (`~/.agents/skills/lavish/SKILL.md`) to build/update HTML. After applying poll feedback, run `wfw plan --reply "<summary>"` (or `wfw_plan` with `agent_reply`) to show your reply in the browser and poll again. Use `wfw plan --open-only` to skip polling.
+**`plan` workflow (two steps):**
+1. **`wfw plan "<prompt>"` or `wfw prompt "<text>"`** - queues `.wfw/last-prompt.txt` only. Build/update the Lavish HTML artifact using the lavish skill (`~/.agents/skills/lavish/SKILL.md`), then continue.
+2. **`wfw plan`** - opens lavish-axi on `lavish_artifact.html` and **long-polls** until the user sends feedback.
+3. After applying poll feedback, **`wfw plan --reply "<summary>"`** - posts your reply in the browser and **polls again** for more feedback. Repeat step 3 until the user ends the Lavish session.
+
+Never respond to the user in chat and end the turn while Lavish planning is active without running `wfw plan` or `wfw plan --reply` to keep polling. Use `wfw plan --open-only` to skip polling.
 
 **gnhf:** always via `wfw` with `--max-iterations 12 --max-tokens 300000` (env: `WFW_GNHF_MAX_*`).
 

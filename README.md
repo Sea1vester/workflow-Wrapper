@@ -144,8 +144,8 @@ Set `WFW_PROJECT_ROOT` if your MCP client's cwd is not the project directory.
 | Command | What it does |
 |---------|--------------|
 | `wfw start <feature>` | Lease a treehouse worktree; wire shared team Lavish plan (prints `cd <path>`) |
-| `wfw plan [prompt]` | Open the team plan in lavish-axi and long-poll for feedback |
-| `wfw plan --reply "<text>"` | After applying feedback, poll again with your reply in the browser |
+| `wfw plan [prompt]` | Queue prompt (if given); with no prompt, open lavish-axi and long-poll for feedback |
+| `wfw plan --reply "<text>"` | Post agent reply in Lavish and poll again for more feedback |
 | `wfw plan --open-only [prompt]` | Open browser only (skip poll) |
 | `wfw prompt "<text>"` | Same as `wfw plan "<text>"` |
 | `wfw auto "<objective>"` | Run gnhf in current worktree (guardrailed) |
@@ -241,7 +241,10 @@ wfw start auth-refactor
 cd /path/printed/by/wfw/start
 
 # 2 Plan (Lavish) - same HTML plan for every parallel lease
-wfw plan "Map the OAuth login flow and edge cases"
+wfw plan "Map the OAuth login flow and edge cases"   # queues prompt; agent builds HTML
+wfw plan                                            # open + poll for feedback
+# after applying feedback:
+wfw plan --reply "Updated auth section per your notes"
 
 # 3. Build in this leased worktree (guardrailed gnhf)
 wfw auto "Implement the approved Lavish plan"

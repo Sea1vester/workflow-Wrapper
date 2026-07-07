@@ -67,12 +67,15 @@ Report the worktree path and suggest wfw_plan next.`,
 
 User request: {{prompt}}
 
-If the user provided text, use wfw_plan with prompt="{{prompt}}".
-Otherwise use wfw_plan with no prompt.
+If the user provided text:
+1. Use wfw_plan with prompt="{{prompt}}" (queues .wfw/last-prompt.txt only).
+2. Build or update the team Lavish HTML artifact per the lavish skill.
+3. Call wfw_plan again with no prompt to open lavish-axi and long-poll for feedback.
 
-wfw plan opens lavish-axi and long-polls until the user annotates, queues a prompt, or ends the session.
-After you apply poll feedback, call wfw_plan again with agent_reply="<your summary>" to show your reply in the browser and poll again.
-Follow the lavish skill to build or update the team HTML artifact when a prompt was given.`,
+If no prompt text, use wfw_plan with no prompt to open and long-poll.
+
+After poll feedback, apply changes to the HTML artifact, then call wfw_plan with agent_reply="<summary>".
+That posts your reply in Lavish and polls again - do not end the turn without polling again during an active plan review.`,
         args,
       ),
   },
@@ -86,8 +89,8 @@ Follow the lavish skill to build or update the team HTML artifact when a prompt 
 
 Use the wfw_prompt MCP tool with prompt="{{prompt}}".
 
-Writes .wfw/last-prompt.txt, opens lavish-axi on the shared plan artifact, and long-polls for feedback.
-After applying feedback, use wfw_plan with agent_reply to continue the review loop.`,
+Queues .wfw/last-prompt.txt only. Build the Lavish HTML artifact, then call wfw_plan (no prompt) to open and poll.
+After feedback, use wfw_plan with agent_reply to reply in the browser and poll again.`,
         args,
       ),
   },
