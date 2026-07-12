@@ -1,0 +1,14 @@
+description = "Lease a worktree and open your agent CLI (wfw agent)"
+prompt = """
+Run workflowWrapper agent.
+
+Feature: {{args}}
+
+If not already inside a leased worktree, lease one and open your agent CLI:
+!{wfw agent {{args}}}
+
+If already inside a worktree, open the agent CLI there:
+!{wfw agent}
+
+Auto-detects claude, opencode, gemini, cursor, or agent on PATH.
+"""

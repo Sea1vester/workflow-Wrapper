@@ -149,9 +149,11 @@ Set `WFW_PROJECT_ROOT` if your MCP client's cwd is not the project directory.
 | `wfw plan --open-only [prompt]` | Open browser only (skip poll) |
 | `wfw prompt "<text>"` | Same as `wfw plan "<text>"` |
 | `wfw auto "<objective>"` | Run gnhf in current worktree (guardrailed) |
+| `wfw agent [feature]` | Lease worktree (if needed) and open your agent CLI |
 | `wfw validate` | Push current branch through no-mistakes (from leased worktree) |
+| `wfw cleanup [--global]` | Prune merged, idle treehouse worktrees |
 
-`wfw plan`, `wfw auto`, and `wfw validate` require you to be inside a leased worktree (after `cd` into the path from `wfw start`).
+`wfw plan`, `wfw auto`, `wfw agent`, and `wfw validate` require you to be inside a leased worktree (after `cd` into the path from `wfw start`), except `wfw agent <feature>` which leases for you.
 
 ### Passthrough commands (use lavish, treehouse, gnhf, no-mistake commands directly)
 
@@ -171,6 +173,8 @@ Set `WFW_PROJECT_ROOT` if your MCP client's cwd is not the project directory.
 | `WFW_NO_MISTAKES_SKIP` | `document` | Skip no-mistakes document step on `wfw validate` (set empty to disable) |
 | `WFW_VERBOSE` | `0` | Set to `1` to print symlink paths and gnhf guardrail lines |
 | `WFW_PROJECT_ROOT` | cwd | Project directory for MCP tools |
+| `WFW_AGENT_CLI` | auto-detect | Agent CLI for `wfw agent` (`claude`, `opencode`, etc.) |
+| `WFW_SKIP_WORKTREE_CLEANUP` | `0` | Set to `1` to skip `treehouse return` + `prune` after `wfw validate` |
 
 ## MCP tools (LLM-agnostic)
 
@@ -180,7 +184,9 @@ Set `WFW_PROJECT_ROOT` if your MCP client's cwd is not the project directory.
 | `wfw_plan` | `wfw plan [prompt]` (long-polls; use `agent_reply` to continue after feedback) |
 | `wfw_prompt` | `wfw prompt "<prompt>"` |
 | `wfw_auto` | `wfw auto "<objective>"` |
+| `wfw_agent` | `wfw agent [feature]` |
 | `wfw_validate` | `wfw validate` |
+| `wfw_cleanup` | `wfw cleanup` |
 
 MCP prompts (`wfw`, `wfw-start`, `wfw-plan`, `wfw-prompt`, `wfw-auto`, `wfw-validate`) route subcommands to the right tool.
 
@@ -269,3 +275,5 @@ wfw plan   # sees Agent1's updates immediately
 ```
 
 After `wfw validate`, review and merge the PR no-mistakes opens.
+`wfw validate` returns the treehouse lease and runs `treehouse prune` for worktrees already merged into the default branch.
+Run `wfw cleanup` anytime to prune stale merged worktrees manually.

@@ -90,6 +90,26 @@ server.tool(
 );
 
 server.tool(
+  "wfw_agent",
+  "Lease a treehouse worktree (if needed) and open the user's agent CLI (wfw agent)",
+  {
+    feature: z.string().optional().describe("Feature name to lease when not already in a worktree"),
+    cli: z.string().optional().describe("Agent CLI command (default: auto-detect or WFW_AGENT_CLI)"),
+    project_root: projectRootSchema,
+  },
+  async ({ feature, cli, project_root }) => {
+    const args = ["agent"];
+    if (cli) {
+      args.push("--cli", cli);
+    }
+    if (feature) {
+      args.push(feature);
+    }
+    return invokeWfw(args, project_root);
+  },
+);
+
+server.tool(
   "wfw_auto",
   "Run guarded gnhf in the current worktree (wfw auto)",
   {
@@ -101,11 +121,27 @@ server.tool(
 
 server.tool(
   "wfw_validate",
-  "Push HEAD through no-mistakes pipeline (wfw validate)",
+  "Push HEAD through no-mistakes pipeline (wfw validate); returns lease and prunes merged worktrees on success",
   {
     project_root: projectRootSchema,
   },
   async ({ project_root }) => invokeWfw(["validate"], project_root),
+);
+
+server.tool(
+  "wfw_cleanup",
+  "Prune merged idle treehouse worktrees (wfw cleanup)",
+  {
+    global: z.boolean().optional().describe("Prune all pools under treehouse root (treehouse prune --all)"),
+    project_root: projectRootSchema,
+  },
+  async ({ global, project_root }) => {
+    const args = ["cleanup"];
+    if (global) {
+      args.push("--global");
+    }
+    return invokeWfw(args, project_root);
+  },
 );
 
 for (const promptDef of WFW_PROMPTS) {

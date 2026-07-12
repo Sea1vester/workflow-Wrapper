@@ -3,7 +3,7 @@ name: wfw
 description: >-
   /wfw hackathon workflow: treehouse worktrees, Lavish plans, guarded gnhf, no-mistakes.
   Use when user invokes /wfw.
-argument-hint: start <feature> | plan [prompt] | plan --reply "<text>" | prompt <text> | auto "..." | validate | treehouse | lavish | gnhf | no-mistakes
+argument-hint: start <feature> | agent [feature] | plan [prompt] | plan --reply "<text>" | prompt <text> | auto "..." | validate | cleanup | treehouse | lavish | gnhf | no-mistakes
 ---
 
 # /wfw (LLM slash command only)
@@ -16,7 +16,11 @@ First token = subcommand; rest = args. Run matching shell via `wfw` (terminal CL
 `wfw start` wires the team plan into each leased worktree automatically.
 Users `cd` into the printed worktree, then use `wfw plan`, `wfw auto`, and `wfw validate`.
 
-**Routes:** `start <feature>` | `plan` / `plan <prompt>` / `plan --reply "<text>"` / `prompt <text>` | `auto "<obj>"` | `validate` | `treehouse …` | `lavish …` | `gnhf …` | `no-mistakes`
+**Routes:** `start <feature>` | `agent [feature]` | `plan` / `plan <prompt>` / `plan --reply "<text>"` / `prompt <text>` | `auto "<obj>"` | `validate` | `cleanup` | `treehouse …` | `lavish …` | `gnhf …` | `no-mistakes`
+
+**`agent`:** leases a treehouse worktree (like `start`) when given a feature name, then execs your agent CLI (`claude`, `opencode`, `gemini`, `cursor`, etc.). From inside a worktree, `wfw agent` opens the CLI there. Override with `WFW_AGENT_CLI` or `wfw agent --cli <name>`.
+
+**`cleanup`:** runs `treehouse prune --yes` to drop merged, idle worktrees. `wfw validate` also returns the current lease and prunes after a successful push (set `WFW_SKIP_WORKTREE_CLEANUP=1` to disable).
 
 **Worktree required** for `auto`, `validate`, and `plan`/`prompt` with lavish-axi.
 If missing, tell the user to run `wfw start <feature>` from the app repo and `cd` into the path it prints.

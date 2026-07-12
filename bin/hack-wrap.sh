@@ -35,7 +35,9 @@ Workflow commands:
   wfw plan --open-only [prompt]  Open browser only (no poll)
   wfw prompt "<prompt>"          Queue plan prompt (then run wfw plan to open + poll)
   wfw auto "<objective>"         Run gnhf with guardrails in current worktree
+  wfw agent [feature] [-- args]  Lease worktree (if needed) and open your agent CLI
   wfw validate                   Ship current branch through no-mistakes (worktree required)
+  wfw cleanup [--global]         Prune merged, idle treehouse worktrees (dry-run: treehouse prune)
   wfw setup                      Refresh skills and MCP config (run once after install)
 
 Passthrough commands (full CLI retained):
@@ -50,6 +52,12 @@ gnhf guardrails (wfw auto and wfw gnhf):
 
 no-mistakes validate (wfw validate):
   Optional skip steps via WFW_NO_MISTAKES_SKIP (e.g. document)
+  After a successful push, returns the leased worktree and prunes merged idle pools
+  (disable: WFW_SKIP_WORKTREE_CLEANUP=1)
+
+agent CLI (wfw agent):
+  Override detection with WFW_AGENT_CLI or wfw agent --cli <name>
+  Auto-detect order: claude, opencode, gemini, cursor, agent, cursor-agent
 
 Typical flow (from your app repo):
   wfw start my-feature
@@ -212,7 +220,7 @@ ensure_treehouse_config() {
 }
 
 print_first_start_setup() {
-  cat <<'EOF'
+  cat >&2 <<'EOF'
 
 First-time setup - install once per machine:
   wfw         npm install -g github:Sea1vester/workflow-Wrapper
@@ -241,17 +249,73 @@ run_no_mistakes_push() {
   if [ -n "$NO_MISTAKES_SKIP" ]; then
     push_args+=(--push-option "no-mistakes.skip=$NO_MISTAKES_SKIP")
   fi
-  exec git push "${push_args[@]}" no-mistakes HEAD "$@"
+  git push "${push_args[@]}" no-mistakes HEAD "$@"
+  local rc=$?
+  if [ $rc -eq 0 ]; then
+    cleanup_worktree_after_ship
+  fi
+  exit $rc
 }
 
-cmd_start() {
-  local feature_name="${1:-}"
+cleanup_worktree_after_ship() {
+  if [ "${WFW_SKIP_WORKTREE_CLEANUP:-0}" = "1" ]; then
+    return 0
+  fi
+  if ! command -v treehouse >/dev/null 2>&1; then
+    return 0
+  fi
+  if ! is_feature_worktree; then
+    return 0
+  fi
+
+  local worktree_path
+  worktree_path="$(pwd -P)"
+
+  if wfw_verbose; then
+    echo "treehouse: returning leased worktree $worktree_path" >&2
+  fi
+  treehouse return "$worktree_path" --force >/dev/null 2>&1 || true
+
+  if wfw_verbose; then
+    echo "treehouse: pruning merged idle worktrees" >&2
+  fi
+  treehouse prune --yes >/dev/null 2>&1 || true
+}
+
+resolve_agent_cli() {
+  if [ -n "${WFW_AGENT_CLI:-}" ]; then
+    if ! command -v "$WFW_AGENT_CLI" >/dev/null 2>&1; then
+      echo "Error: WFW_AGENT_CLI='$WFW_AGENT_CLI' not found in PATH." >&2
+      exit 1
+    fi
+    printf '%s\n' "$WFW_AGENT_CLI"
+    return 0
+  fi
+
+  local candidate
+  for candidate in claude opencode gemini cursor agent cursor-agent; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  cat >&2 <<'EOF'
+Error: no agent CLI found in PATH.
+
+Install one of: claude, opencode, gemini, cursor, agent
+Or set WFW_AGENT_CLI to the command name you use.
+EOF
+  exit 1
+}
+
+lease_feature_worktree() {
+  local feature_name="$1"
   local first_start=false
   local repo_root shared_plan_abs worktree_path
 
   if [ -z "$feature_name" ]; then
     echo "Error: feature name is required." >&2
-    echo "Usage: wfw start <feature-name>" >&2
     exit 1
   fi
 
@@ -291,10 +355,27 @@ cmd_start() {
     append_git_exclude
   )
 
+  printf '%s\n' "$worktree_path"
+}
+
+cmd_start() {
+  local feature_name="${1:-}"
+  local worktree_path
+
+  if [ -z "$feature_name" ]; then
+    echo "Error: feature name is required." >&2
+    echo "Usage: wfw start <feature-name>" >&2
+    exit 1
+  fi
+
+  worktree_path="$(lease_feature_worktree "$feature_name")"
+
   echo "cd $worktree_path"
   echo "Then: wfw plan"
   if wfw_verbose; then
-    echo "Shared plan: $ARTIFACT_LINK -> $shared_plan_abs"
+    local repo_root
+    repo_root="$(git rev-parse --show-toplevel 2>/dev/null || dirname "$worktree_path")"
+    echo "Shared plan: $ARTIFACT_LINK -> $(shared_plan_path "$repo_root")"
   fi
 }
 
@@ -431,6 +512,106 @@ cmd_auto() {
   run_gnhf_guarded "$objective"
 }
 
+cmd_agent() {
+  local feature_name=""
+  local cli_override=""
+  local -a agent_args=()
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --cli)
+        shift
+        cli_override="${1:-}"
+        if [ -z "$cli_override" ]; then
+          echo "Error: --cli requires a command name." >&2
+          exit 1
+        fi
+        shift
+        ;;
+      --)
+        shift
+        agent_args+=("$@")
+        break
+        ;;
+      *)
+        if [ -z "$feature_name" ] && ! is_feature_worktree; then
+          feature_name="$1"
+          shift
+        else
+          agent_args+=("$1")
+          shift
+        fi
+        ;;
+    esac
+  done
+
+  local worktree_path agent_cli
+  if is_feature_worktree; then
+    worktree_path="$(pwd -P)"
+  else
+    if [ -z "$feature_name" ]; then
+      echo "Error: feature name is required outside a leased worktree." >&2
+      echo "Usage: wfw agent <feature-name> [-- agent-args...]" >&2
+      echo "Or: cd into a worktree from 'wfw start', then run: wfw agent" >&2
+      exit 1
+    fi
+    worktree_path="$(lease_feature_worktree "$feature_name")"
+    echo "Leased worktree: $worktree_path" >&2
+  fi
+
+  if [ -n "$cli_override" ]; then
+    WFW_AGENT_CLI="$cli_override"
+  fi
+  agent_cli="$(resolve_agent_cli)"
+
+  if wfw_verbose; then
+    echo "Launching $agent_cli in $worktree_path" >&2
+  fi
+
+  cd "$worktree_path"
+  if [ ${#agent_args[@]} -eq 0 ]; then
+    exec "$agent_cli"
+  else
+    exec "$agent_cli" "${agent_args[@]}"
+  fi
+}
+
+cmd_cleanup() {
+  local global=false
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --global | --all)
+        global=true
+        shift
+        ;;
+      -h | --help)
+        cat <<'EOF'
+Usage: wfw cleanup [--global]
+
+Prune idle treehouse worktrees whose HEAD is already merged into the default branch.
+Uses 'treehouse prune --yes' in the current repo, or '--global' for every pool.
+
+Preview without deleting: wfw treehouse prune
+EOF
+        return 0
+        ;;
+      *)
+        echo "Error: unknown cleanup argument '$1'." >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  require_cmd treehouse
+  if [ "$global" = true ]; then
+    treehouse prune --all --yes
+  else
+    require_git_repo
+    treehouse prune --yes
+  fi
+}
+
 cmd_validate() {
   require_feature_worktree
   run_no_mistakes_push
@@ -508,11 +689,19 @@ main() {
       shift
       cmd_auto "${*:-}"
       ;;
+    agent)
+      shift
+      cmd_agent "$@"
+      ;;
     validate)
       cmd_validate
       ;;
     setup)
       cmd_setup
+      ;;
+    cleanup)
+      shift
+      cmd_cleanup "$@"
       ;;
     treehouse)
       shift

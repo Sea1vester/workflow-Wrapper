@@ -6,10 +6,12 @@ Request: {{args}}
 
 Route to the correct wfw subcommand and run it in the terminal. Subcommands:
 - start <feature>
+- agent [feature]
 - plan [prompt]
 - prompt <text>
 - auto "<objective>"
 - validate
+- cleanup
 - treehouse ...
 - lavish ...
 - gnhf ...

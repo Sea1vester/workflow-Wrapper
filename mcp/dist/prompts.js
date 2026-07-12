@@ -7,15 +7,17 @@ Request: {{args}}
 
 Route to the correct wfw MCP tool or terminal command. Subcommands:
 - start <feature> -> wfw_start
+- agent [feature] -> wfw_agent
 - plan [prompt] / prompt <text> -> wfw_plan or wfw_prompt
 - auto "<objective>" -> wfw_auto
 - validate -> wfw_validate
+- cleanup -> wfw_cleanup
 
 Primary value: one shared Lavish plan across parallel treehouse worktrees.
 Each wfw start leases a worktree with lavish_artifact.html symlinked to
 my_team_workspace/shared_lavish_plan.html at the git repo root.
 
-Always invoke MCP tools (wfw_start, wfw_plan, wfw_prompt, wfw_auto, wfw_validate)
+Always invoke MCP tools (wfw_start, wfw_agent, wfw_plan, wfw_prompt, wfw_auto, wfw_validate, wfw_cleanup)
 rather than reimplementing logic. Set project_root when the client cwd is not the repo.`;
 export const WFW_PROMPTS = [
     {
@@ -74,6 +76,17 @@ Queues .wfw/last-prompt.txt only. Build the Lavish HTML artifact, then call wfw_
 After feedback, use wfw_plan with agent_reply to reply in the browser and poll again.`, args),
     },
     {
+        name: "wfw-agent",
+        description: "Lease a worktree and open the user's agent CLI (wfw agent)",
+        args: [{ name: "feature", description: "Feature name for treehouse lease (optional inside a worktree)" }],
+        template: (args) => fill(`Run workflowWrapper agent for feature: {{feature}}
+
+Use wfw_agent with feature="{{feature}}" when not already inside a leased worktree.
+From inside a worktree, wfw_agent with no feature opens the agent CLI there.
+
+Detects claude, opencode, gemini, cursor, or agent on PATH (override: WFW_AGENT_CLI).`, args),
+    },
+    {
         name: "wfw-auto",
         description: "Run guarded gnhf in the current worktree (wfw auto)",
         args: [{ name: "objective", description: "Objective passed to gnhf", required: true }],
@@ -90,6 +103,15 @@ Guardrails: 12 iterations, 300k tokens max.`, args),
 
 Use the wfw_validate MCP tool.
 
+After success, wfw returns the treehouse lease and prunes merged idle worktrees automatically.
+
 Report the result.`,
+    },
+    {
+        name: "wfw-cleanup",
+        description: "Prune merged idle treehouse worktrees (wfw cleanup)",
+        template: () => `Run workflowWrapper cleanup.
+
+Use the wfw_cleanup MCP tool to run treehouse prune --yes in the current repo.`,
     },
 ];
