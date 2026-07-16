@@ -248,12 +248,13 @@ run_gnhf_guarded() {
 
 run_no_mistakes_push() {
   require_cmd git
-  local -a push_args=()
+  local rc
   if [ -n "$NO_MISTAKES_SKIP" ]; then
-    push_args+=(--push-option "no-mistakes.skip=$NO_MISTAKES_SKIP")
+    git push --push-option "no-mistakes.skip=$NO_MISTAKES_SKIP" no-mistakes HEAD "$@"
+  else
+    git push no-mistakes HEAD "$@"
   fi
-  git push "${push_args[@]}" no-mistakes HEAD "$@"
-  local rc=$?
+  rc=$?
   if [ $rc -eq 0 ]; then
     cleanup_worktree_after_ship
   fi
