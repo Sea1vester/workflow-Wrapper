@@ -1,6 +1,6 @@
 {
   "name": "workflow-wrapper",
-  "version": "1.4.7",
+  "version": "1.4.8",
   "description": "Hackathon CLI orchestration layer for treehouse, lavish, gnhf, and no-mistakes",
   "bin": {
     "wfw": "./bin/hack-wrap.sh",
