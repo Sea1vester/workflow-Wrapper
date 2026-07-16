@@ -23,6 +23,12 @@ echo "MOCK_AGENT_CLI=claude PWD=$PWD ARGS=$*"
 EOF
 chmod +x "$MOCK_BIN/claude"
 
+cat >"$MOCK_BIN/agy" <<'EOF'
+#!/usr/bin/env bash
+echo "MOCK_AGENT_CLI=agy PWD=$PWD ARGS=$*"
+EOF
+chmod +x "$MOCK_BIN/agy"
+
 WORKDIR="$TEST_DIR/worktree"
 mkdir -p "$WORKDIR"
 git -C "$WORKDIR" init -q
@@ -33,6 +39,10 @@ OUT="$(cd "$WORKDIR" && PATH="$MOCK_BIN:$PATH" WFW_AGENT_CLI=claude "$WFW_BIN" a
 echo "$OUT" | grep -q 'MOCK_AGENT_CLI=claude' || fail "agent CLI not launched: $OUT"
 echo "$OUT" | grep -q 'worktree' || fail "agent not launched in worktree: $OUT"
 pass "wfw agent execs detected CLI inside leased worktree"
+
+OUT_AGY="$(cd "$WORKDIR" && PATH="$MOCK_BIN:$PATH" WFW_AGENT_CLI=agy "$WFW_BIN" agent 2>&1)" || fail "wfw agent agy failed: $OUT_AGY"
+echo "$OUT_AGY" | grep -q 'MOCK_AGENT_CLI=agy' || fail "agy CLI not launched: $OUT_AGY"
+pass "wfw agent supports agy via WFW_AGENT_CLI"
 
 echo ""
 echo "All wfw agent checks passed."

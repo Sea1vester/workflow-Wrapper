@@ -57,7 +57,7 @@ no-mistakes validate (wfw validate):
 
 agent CLI (wfw agent):
   Override detection with WFW_AGENT_CLI or wfw agent --cli <name>
-  Auto-detect order: claude, opencode, gemini, cursor, agent, cursor-agent
+  Auto-detect order: claude, opencode, agy, gemini, cursor, agent, cursor-agent
 
 Typical flow (from your app repo):
   wfw start my-feature
@@ -293,7 +293,7 @@ resolve_agent_cli() {
   fi
 
   local candidate
-  for candidate in claude opencode gemini cursor agent cursor-agent; do
+  for candidate in claude opencode agy gemini cursor agent cursor-agent; do
     if command -v "$candidate" >/dev/null 2>&1; then
       printf '%s\n' "$candidate"
       return 0
@@ -303,7 +303,7 @@ resolve_agent_cli() {
   cat >&2 <<'EOF'
 Error: no agent CLI found in PATH.
 
-Install one of: claude, opencode, gemini, cursor, agent
+Install one of: claude, opencode, agy, gemini, cursor, agent
 Or set WFW_AGENT_CLI to the command name you use.
 EOF
   exit 1

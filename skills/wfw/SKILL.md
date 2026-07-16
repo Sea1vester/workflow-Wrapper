@@ -18,7 +18,7 @@ Users `cd` into the printed worktree, then use `wfw plan`, `wfw auto`, and `wfw 
 
 **Routes:** `start <feature>` | `agent [feature]` | `plan` / `plan <prompt>` / `plan --reply "<text>"` / `prompt <text>` | `auto "<obj>"` | `validate` | `cleanup` | `treehouse …` | `lavish …` | `gnhf …` | `no-mistakes`
 
-**`agent`:** leases a treehouse worktree (like `start`) when given a feature name, then execs your agent CLI (`claude`, `opencode`, `gemini`, `cursor`, etc.). From inside a worktree, `wfw agent` opens the CLI there. Override with `WFW_AGENT_CLI` or `wfw agent --cli <name>`.
+**`agent`:** leases a treehouse worktree (like `start`) when given a feature name, then execs your agent CLI (`claude`, `opencode`, `agy`, `gemini`, `cursor`, etc.). From inside a worktree, `wfw agent` opens the CLI there. Override with `WFW_AGENT_CLI` or `wfw agent --cli <name>`.
 
 **`cleanup`:** runs `treehouse prune --yes` to drop merged, idle worktrees. `wfw validate` also returns the current lease and prunes after a successful push (set `WFW_SKIP_WORKTREE_CLEANUP=1` to disable).
 

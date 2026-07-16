@@ -107,7 +107,7 @@ After feedback, use wfw_plan with agent_reply to reply in the browser and poll a
 Use wfw_agent with feature="{{feature}}" when not already inside a leased worktree.
 From inside a worktree, wfw_agent with no feature opens the agent CLI there.
 
-Detects claude, opencode, gemini, cursor, or agent on PATH (override: WFW_AGENT_CLI).`,
+Detects claude, opencode, agy, gemini, cursor, or agent on PATH (override: WFW_AGENT_CLI).`,
         args,
       ),
   },

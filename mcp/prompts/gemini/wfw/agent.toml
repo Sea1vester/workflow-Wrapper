@@ -10,5 +10,5 @@ If not already inside a leased worktree, lease one and open your agent CLI:
 If already inside a worktree, open the agent CLI there:
 !{wfw agent}
 
-Auto-detects claude, opencode, gemini, cursor, or agent on PATH.
+Auto-detects claude, opencode, agy, gemini, cursor, or agent on PATH.
 """

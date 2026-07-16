@@ -90,7 +90,7 @@ no-mistakes init
 # follow prompts; adds git remote "no-mistakes" and installs /no-mistakes skill
 ```
 
-Requires **git**, **gh** (GitHub CLI), and at least one agent CLI (e.g. Claude Code, OpenCode).
+Requires **git**, **gh** (GitHub CLI), and at least one agent CLI (e.g. Claude Code, Antigravity `agy`, OpenCode).
 
 ### 5. workflow-wrapper (wfw)
 
@@ -173,7 +173,7 @@ Set `WFW_PROJECT_ROOT` if your MCP client's cwd is not the project directory.
 | `WFW_NO_MISTAKES_SKIP` | `document` | Skip no-mistakes document step on `wfw validate` (set empty to disable) |
 | `WFW_VERBOSE` | `0` | Set to `1` to print symlink paths and gnhf guardrail lines |
 | `WFW_PROJECT_ROOT` | cwd | Project directory for MCP tools |
-| `WFW_AGENT_CLI` | auto-detect | Agent CLI for `wfw agent` (`claude`, `opencode`, etc.) |
+| `WFW_AGENT_CLI` | auto-detect | Agent CLI for `wfw agent` (`claude`, `opencode`, `agy`, etc.) |
 | `WFW_SKIP_WORKTREE_CLEANUP` | `0` | Set to `1` to skip `treehouse return` + `prune` after `wfw validate` |
 
 ## MCP tools (LLM-agnostic)
