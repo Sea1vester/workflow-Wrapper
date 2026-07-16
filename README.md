@@ -146,7 +146,7 @@ Most commands after `start` run inside the leased worktree.
 
 | Command | Purpose | Usage |
 |---------|---------|-------|
-| `wfw start <feature>` | Lease an isolated worktree; wire shared Lavish plan symlink | `wfw start auth-refactor` (enters shell when interactive) |
+| `wfw start <feature>` | Lease an isolated worktree; wire shared Lavish plan; create `feature/<name>` git branch | `wfw start auth-refactor` (enters shell when interactive) |
 | `wfw start <feature> --path` | Print worktree path only | `cd "$(wfw start foo --path)"` |
 | `wfw start <feature> --no-enter` | Lease but print `cd` hint only | For scripts / MCP |
 | `wfw agent [feature]` | Open your agent CLI in a worktree | `wfw agent` or `wfw agent api --cli agy` |
@@ -189,6 +189,9 @@ Merge parallel features one at a time; rebase other worktrees onto updated `main
 
 **Worktree required** for `plan`, `auto`, `validate`, and `merge`.
 Exception: `wfw agent <feature>` leases for you; `wfw start` runs from the app repo root.
+
+Treehouse leases start in **detached HEAD** (by design).
+`wfw start` creates or checks out `feature/<feature-name>` so `wfw merge` and `wfw validate` have a real branch to ship.
 
 ### Environment variables
 

@@ -18,7 +18,7 @@ Users `cd` into the printed worktree, then use `wfw plan`, `wfw auto`, and `wfw 
 
 **Routes:** `start <feature>` | `merge` / `merge --abort` | `agent [feature]` | `plan` / `plan <prompt>` / `plan --reply "<text>"` / `prompt <text>` | `auto "<obj>"` | `validate` | `cleanup` | `treehouse …` | `lavish …` | `gnhf …` | `no-mistakes`
 
-**`start`:** leases a worktree and **enters it automatically** when run interactively in a terminal (`wfw start <feature>`). Use `--path` for scripts or `--no-enter` to print `cd` only.
+**`start`:** leases a worktree and **enters it automatically** when run interactively in a terminal (`wfw start <feature>`). Creates git branch `feature/<name>` (treehouse pools use detached HEAD; wfw fixes that). Use `--path` for scripts or `--no-enter` to print `cd` only.
 
 **`merge`:** from a feature worktree, merges your branch into `main`/`master` at the main worktree. On conflict, fix files in the main worktree (`cd` path printed), commit, or `wfw merge --abort`. Merge parallel features one at a time; rebase other worktrees onto updated main before merging them.
 

@@ -20,6 +20,10 @@ MOCK_BIN="$TEST_DIR/mock-bin"
 mkdir -p "$MOCK_BIN"
 cat >"$MOCK_BIN/git" <<'EOF'
 #!/usr/bin/env bash
+if [ "$1" = "remote" ] && [ "$2" = "get-url" ] && [ "$3" = "no-mistakes" ]; then
+  echo "https://example.com/no-mistakes.git"
+  exit 0
+fi
 if [ "$1" = "push" ]; then
   echo "MOCK_GIT_PUSH=$*"
   exit 0

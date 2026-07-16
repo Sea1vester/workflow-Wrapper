@@ -246,8 +246,29 @@ run_gnhf_guarded() {
     "$@"
 }
 
+require_no_mistakes_remote() {
+  if git remote get-url no-mistakes >/dev/null 2>&1; then
+    return 0
+  fi
+  cat >&2 <<'EOF'
+Error: git remote 'no-mistakes' is not configured in this repo.
+
+wfw validate pushes HEAD to the no-mistakes gate (review, tests, PR).
+Run once per app repo:
+
+  cd <your-app-repo>
+  no-mistakes init
+
+To merge locally into main without no-mistakes:
+
+  wfw merge
+EOF
+  exit 1
+}
+
 run_no_mistakes_push() {
   require_cmd git
+  require_no_mistakes_remote
   local rc
   if [ -n "$NO_MISTAKES_SKIP" ]; then
     git push --push-option "no-mistakes.skip=$NO_MISTAKES_SKIP" no-mistakes HEAD "$@"
@@ -366,7 +387,7 @@ EOF
 
   local feature_wt feature_branch repo_root default_branch main_wt
   feature_wt="$(pwd -P)"
-  feature_branch="$(git branch --show-current)"
+  feature_branch="$(resolve_feature_branch)"
   repo_root="$(resolve_repo_root)"
   default_branch="$(resolve_default_branch "$repo_root")"
   main_wt="$(resolve_main_worktree "$repo_root" "$default_branch")"
@@ -446,6 +467,103 @@ EOF
   exit 1
 }
 
+feature_name_to_branch() {
+  local name="$1"
+  local slug
+
+  slug="$(printf '%s\n' "$name" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^[-.]+|[-.]+$//g')"
+  if [ -z "$slug" ]; then
+    slug="work"
+  fi
+
+  case "$slug" in
+    feature/*)
+      printf '%s\n' "$slug"
+      ;;
+    *)
+      printf 'feature/%s\n' "$slug"
+      ;;
+  esac
+}
+
+ensure_feature_branch() {
+  local worktree_path="$1"
+  local feature_name="$2"
+  local branch_name
+
+  branch_name="$(feature_name_to_branch "$feature_name")"
+
+  (
+    cd "$worktree_path"
+    mkdir -p .wfw
+    printf '%s\n' "$feature_name" >.wfw/lease-holder
+    printf '%s\n' "$branch_name" >.wfw/branch
+
+    local current
+    current="$(git branch --show-current)"
+
+    if [ "$current" = "$branch_name" ]; then
+      return 0
+    fi
+
+    if git show-ref --verify --quiet "refs/heads/$branch_name"; then
+      git checkout "$branch_name"
+    else
+      git checkout -b "$branch_name"
+    fi
+  )
+
+  if wfw_verbose; then
+    echo "Feature branch: $branch_name (treehouse leases use detached HEAD; wfw creates the branch)" >&2
+  fi
+}
+
+resolve_feature_branch() {
+  local branch
+
+  branch="$(git branch --show-current)"
+  if [ -n "$branch" ]; then
+    printf '%s\n' "$branch"
+    return 0
+  fi
+
+  if [ -f .wfw/branch ]; then
+    branch="$(<.wfw/branch)"
+    if git show-ref --verify --quiet "refs/heads/$branch"; then
+      git checkout "$branch"
+    else
+      git checkout -b "$branch"
+    fi
+    printf '%s\n' "$branch"
+    return 0
+  fi
+
+  if [ -f .wfw/lease-holder ]; then
+    branch="$(feature_name_to_branch "$(<.wfw/lease-holder)")"
+    if git show-ref --verify --quiet "refs/heads/$branch"; then
+      git checkout "$branch"
+    else
+      git checkout -b "$branch"
+    fi
+    printf '%s\n' "$branch"
+    return 0
+  fi
+
+  cat >&2 <<'EOF'
+Error: detached HEAD with no wfw feature branch.
+
+Treehouse worktrees use detached HEAD by design (avoids branch name clashes in the pool).
+wfw start normally creates a feature branch for you. Re-run from the app repo:
+
+  wfw start <feature-name>
+
+Or create a branch manually at your current commit:
+
+  git checkout -b feature/<name>
+EOF
+  exit 1
+}
+
 lease_feature_worktree() {
   local feature_name="$1"
   local first_start=false
@@ -490,6 +608,7 @@ lease_feature_worktree() {
     cd "$worktree_path"
     ensure_lavish_symlink "$worktree_path" "$shared_plan_abs"
     append_git_exclude
+    ensure_feature_branch "$worktree_path" "$feature_name"
   )
 
   printf '%s\n' "$worktree_path"
