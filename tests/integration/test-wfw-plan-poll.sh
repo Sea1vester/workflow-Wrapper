@@ -39,7 +39,7 @@ chmod +x "$MOCK_BIN/npx"
 
 WORKDIR="$TEST_DIR/worktree"
 mkdir -p "$WORKDIR/.lavish"
-: >"$WORKDIR/.lavish/plan.html"
+printf '%s\n' '<!DOCTYPE html><html><body>plan</body></html>' >"$WORKDIR/.lavish/plan.html"
 
 run_wfw() {
   (cd "$WORKDIR" && PATH="$MOCK_BIN:$PATH" "$WFW_BIN" "$@")
@@ -47,6 +47,7 @@ run_wfw() {
 
 PLAN_OUT="$(run_wfw plan 2>&1)" || fail "wfw plan failed: $PLAN_OUT"
 echo "$PLAN_OUT" | grep -q 'LAVISH_AXI_ARTIFACT=.lavish/plan.html' || fail "expected open: $PLAN_OUT"
+echo "$PLAN_OUT" | grep -q 'listening for Lavish feedback' || fail "expected listen banner: $PLAN_OUT"
 echo "$PLAN_OUT" | grep -q 'LAVISH_AXI_POLL=.lavish/plan.html' || fail "expected poll: $PLAN_OUT"
 pass "wfw plan opens and polls"
 
@@ -58,9 +59,9 @@ grep -qxF 'oauth flow' "$WORKDIR/.wfw/last-prompt.txt" || fail "prompt file cont
 pass "wfw plan <prompt> queues only (no poll before agent builds HTML)"
 
 REPLY_OUT="$(run_wfw plan --reply "Updated auth section" 2>&1)" || fail "wfw plan --reply failed: $REPLY_OUT"
-echo "$REPLY_OUT" | grep -q 'LAVISH_AXI_POLL_REPLY=.lavish/plan.html' || fail "expected reply poll: $REPLY_OUT"
+echo "$REPLY_OUT" | grep -q 'listening for Lavish feedback' || fail "expected listen banner on reply: $REPLY_OUT"
 echo "$REPLY_OUT" | grep -q 'LAVISH_AXI_POLL=.lavish/plan.html' || fail "expected follow-up poll: $REPLY_OUT"
-pass "wfw plan --reply posts agent reply and polls again"
+pass "wfw plan --reply posts agent reply and listens again"
 
 echo ""
 echo "All wfw plan poll sequencing checks passed."

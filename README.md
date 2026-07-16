@@ -131,38 +131,64 @@ node --version
 
 ```bash
 cd ~/CodingFun/my-app
-wfw start my-feature
-cd <path printed by wfw start>
+wfw start my-feature    # interactive: lands in the leased worktree
+wfw plan                # continue from there
 ```
 
 Set `WFW_PROJECT_ROOT` if your MCP client's cwd is not the project directory.
 
 ## Commands
 
-### Workflow commands (use these day to day)
+Concise reference.
+Most commands after `start` run inside the leased worktree.
 
-| Command | What it does |
-|---------|--------------|
-| `wfw start <feature>` | Lease a treehouse worktree; wire shared team Lavish plan (prints `cd <path>`) |
-| `wfw plan [prompt]` | Queue prompt (if given); with no prompt, open lavish-axi and long-poll for feedback |
-| `wfw plan --reply "<text>"` | Post agent reply in Lavish and poll again for more feedback |
-| `wfw plan --open-only [prompt]` | Open browser only (skip poll) |
-| `wfw prompt "<text>"` | Same as `wfw plan "<text>"` |
-| `wfw auto "<objective>"` | Run gnhf in current worktree (guardrailed) |
-| `wfw agent [feature]` | Lease worktree (if needed) and open your agent CLI |
-| `wfw validate` | Push current branch through no-mistakes (from leased worktree) |
-| `wfw cleanup [--global]` | Prune merged, idle treehouse worktrees |
+### Worktree
 
-`wfw plan`, `wfw auto`, `wfw agent`, and `wfw validate` require you to be inside a leased worktree (after `cd` into the path from `wfw start`), except `wfw agent <feature>` which leases for you.
+| Command | Purpose | Usage |
+|---------|---------|-------|
+| `wfw start <feature>` | Lease an isolated worktree; wire shared Lavish plan symlink | `wfw start auth-refactor` (enters shell when interactive) |
+| `wfw start <feature> --path` | Print worktree path only | `cd "$(wfw start foo --path)"` |
+| `wfw start <feature> --no-enter` | Lease but print `cd` hint only | For scripts / MCP |
+| `wfw agent [feature]` | Open your agent CLI in a worktree | `wfw agent` or `wfw agent api --cli agy` |
+| `wfw cleanup` | Drop merged, idle treehouse worktrees | `wfw cleanup` or `wfw cleanup --global` |
 
-### Passthrough commands (use lavish, treehouse, gnhf, no-mistake commands directly)
+### Plan (Lavish)
 
-| Command | What it does |
-|---------|--------------|
-| `wfw treehouse <args>` | e.g. `wfw treehouse status` |
-| `wfw lavish <args>` | e.g. `wfw lavish poll lavish_artifact.html` |
-| `wfw gnhf <args>` | gnhf with wfw guardrails |
-| `wfw no-mistakes [validate\|push]` | Same as `wfw validate` from a worktree |
+`wfw plan "<prompt>"` queues text only - an agent must build the HTML artifact before the browser opens.
+
+| Command | Purpose | Usage |
+|---------|---------|-------|
+| `wfw plan "<prompt>"` | Queue a plan prompt | `wfw plan "OAuth edge cases"` then build `lavish_artifact.html` |
+| `wfw prompt "<text>"` | Same as `wfw plan "<prompt>"` | `wfw prompt "Add rate-limit section"` |
+| `wfw plan` | Open plan in browser; listen for feedback | `wfw plan` (auto-resumes if agent harness interrupts) |
+| `wfw plan --reply "<text>"` | Post agent reply; keep listening | `wfw plan --reply "Updated auth section"` |
+| `wfw plan --open-only` | Open browser without listening | `wfw plan --open-only` |
+
+### Build and ship
+
+| Command | Purpose | Usage |
+|---------|---------|-------|
+| `wfw auto "<objective>"` | Run gnhf with guardrails in current worktree | `wfw auto "Implement the Lavish plan"` |
+| `wfw validate` | Push through no-mistakes (review, tests, PR) | `wfw validate` |
+| `wfw merge` | Merge feature branch into `main`/`master` locally | `wfw merge` (from feature worktree, after commit) |
+| `wfw merge --abort` | Abort an in-progress merge on main | `wfw merge --abort` |
+
+**Ship paths:** `wfw validate` for the no-mistakes PR gate; `wfw merge` for a direct local merge.
+On merge conflict, fix files in the main worktree path wfw prints, commit, or run `wfw merge --abort`.
+Merge parallel features one at a time; rebase other worktrees onto updated `main` before merging them.
+
+### Setup and passthrough
+
+| Command | Purpose | Usage |
+|---------|---------|-------|
+| `wfw setup` | Refresh `/wfw` skill and MCP config | `wfw setup` (after install or update) |
+| `wfw treehouse <args>` | Raw treehouse CLI | `wfw treehouse status` |
+| `wfw lavish <args>` | Raw lavish-axi CLI | `wfw lavish poll lavish_artifact.html` |
+| `wfw gnhf <args>` | gnhf with wfw guardrails | `wfw gnhf "fix the tests"` |
+| `wfw no-mistakes` | Same as `wfw validate` from a worktree | `wfw no-mistakes` |
+
+**Worktree required** for `plan`, `auto`, `validate`, and `merge`.
+Exception: `wfw agent <feature>` leases for you; `wfw start` runs from the app repo root.
 
 ### Environment variables
 
@@ -181,16 +207,17 @@ Set `WFW_PROJECT_ROOT` if your MCP client's cwd is not the project directory.
 | Tool | Action |
 |------|--------|
 | `wfw_start` | `wfw start <feature>` |
-| `wfw_plan` | `wfw plan [prompt]` (long-polls; use `agent_reply` to continue after feedback) |
+| `wfw_plan` | `wfw plan [prompt]` (listens; use `agent_reply` after feedback) |
 | `wfw_prompt` | `wfw prompt "<prompt>"` |
 | `wfw_auto` | `wfw auto "<objective>"` |
 | `wfw_agent` | `wfw agent [feature]` |
 | `wfw_validate` | `wfw validate` |
+| `wfw_merge` | `wfw merge` |
 | `wfw_cleanup` | `wfw cleanup` |
 
 MCP prompts (`wfw`, `wfw-start`, `wfw-plan`, `wfw-prompt`, `wfw-auto`, `wfw-validate`) route subcommands to the right tool.
 
-Works with Cursor, Gemini CLI, Claude Desktop, OpenCode, and other MCP clients.
+Works with Cursor, Antigravity, Claude Desktop, OpenCode, and other MCP clients.
 
 Gemini slash commands: `/wfw`, `/wfw:start`, `/wfw:plan`, `/wfw:auto`, `/wfw:validate` (via `npm run install-skill`).
 
@@ -243,34 +270,30 @@ You never manage symlinks, shared plan paths, or tool wiring yourself - `wfw sta
 ```bash
 # 1. From your app repo
 cd ~/CodingFun/my-app
-wfw start auth-refactor
-cd /path/printed/by/wfw/start
-
-# 2 Plan (Lavish) - same HTML plan for every parallel lease
+wfw start auth-refactor            # interactive: lands in the worktree
 wfw plan "Map the OAuth login flow and edge cases"   # queues prompt; agent builds HTML
-wfw plan                                            # open + poll for feedback
+wfw plan                                            # open + listen for feedback
 # after applying feedback:
 wfw plan --reply "Updated auth section per your notes"
 
 # 3. Build in this leased worktree (guardrailed gnhf)
 wfw auto "Implement the approved Lavish plan"
 
-# 4. Ship this branch through no-mistakes
+# 4. Ship: no-mistakes PR or local merge
 wfw validate
+# or: wfw merge
 ```
 
-**Parallel agents:** each person runs `wfw start <their-feature>` from the same app repo, then `cd` into their own worktree.
+**Parallel agents:** each person runs `wfw start <their-feature>` from the same app repo (each lands in their own worktree).
 Everyone reads and edits the same live plan file without git commits or copy/paste between branches.
 
 ```bash
 # Agent1
 wfw start auth-refactor
-cd <alice-worktree>
 wfw plan "OAuth provider matrix"
 
 # Agent2 (same app repo, different lease)
 wfw start api-hardening
-cd <bob-worktree>
 wfw plan   # sees Agent1's updates immediately
 ```
 

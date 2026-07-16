@@ -5,6 +5,7 @@ WORKSPACE_DIR="my_team_workspace"
 SHARED_PLAN="shared_lavish_plan.html"
 ARTIFACT_LINK="lavish_artifact.html"
 PROMPT_FILE=".wfw/last-prompt.txt"
+LISTENING_FILE=".wfw/plan-listening"
 GNHF_MAX_ITERATIONS="${WFW_GNHF_MAX_ITERATIONS:-12}"
 GNHF_MAX_TOKENS="${WFW_GNHF_MAX_TOKENS:-300000}"
 NO_MISTAKES_SKIP="${WFW_NO_MISTAKES_SKIP:-}"
@@ -29,13 +30,16 @@ Integration layer for treehouse + lavish + gnhf + no-mistakes.
 All shared Lavish plan wiring is handled automatically by wfw start.
 
 Workflow commands:
-  wfw start <feature-name>       Lease a treehouse worktree (shared team plan wired in)
+  wfw start <feature-name>       Lease a treehouse worktree (enters shell when interactive)
+  wfw start <feature> --path     Print leased worktree path only (for scripts)
+  wfw start <feature> --no-enter Print cd hint without switching shell
   wfw plan [prompt]              Queue prompt (if given), then open + poll for feedback
   wfw plan --reply "<text>"      Post agent reply in Lavish and poll again for more feedback
   wfw plan --open-only [prompt]  Open browser only (no poll)
   wfw prompt "<prompt>"          Queue plan prompt (then run wfw plan to open + poll)
   wfw auto "<objective>"         Run gnhf with guardrails in current worktree
   wfw agent [feature] [-- args]  Lease worktree (if needed) and open your agent CLI
+  wfw merge [--abort]            Merge feature branch into main (from leased worktree)
   wfw validate                   Ship current branch through no-mistakes (worktree required)
   wfw cleanup [--global]         Prune merged, idle treehouse worktrees (dry-run: treehouse prune)
   wfw setup                      Refresh skills and MCP config (run once after install)
@@ -60,11 +64,10 @@ agent CLI (wfw agent):
   Auto-detect order: claude, opencode, agy, gemini, cursor, agent, cursor-agent
 
 Typical flow (from your app repo):
-  wfw start my-feature
-  cd <printed-worktree-path>
+  wfw start my-feature            # interactive: lands in the worktree shell
   wfw plan "What to build"
   wfw auto "Implement the plan"
-  wfw validate
+  wfw merge                       # or wfw validate for no-mistakes PR flow
 EOF
 }
 
@@ -282,6 +285,139 @@ cleanup_worktree_after_ship() {
   treehouse prune --yes >/dev/null 2>&1 || true
 }
 
+resolve_default_branch() {
+  local repo_root="$1"
+  local branch
+
+  branch="$(git -C "$repo_root" symbolic-ref -q refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')" || true
+  if [ -n "$branch" ]; then
+    printf '%s\n' "$branch"
+    return 0
+  fi
+
+  for branch in main master; do
+    if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$branch"; then
+      printf '%s\n' "$branch"
+      return 0
+    fi
+  done
+
+  git -C "$repo_root" branch --show-current
+}
+
+resolve_main_worktree() {
+  local repo_root="$1"
+  local default_branch="$2"
+  local wt_path="" wt_branch=""
+
+  while IFS= read -r wt_line; do
+    case "$wt_line" in
+      worktree\ *)
+        wt_path="${wt_line#worktree }"
+        ;;
+      branch\ refs/heads/*)
+        wt_branch="${wt_line#branch refs/heads/}"
+        if [ "$wt_branch" = "$default_branch" ]; then
+          printf '%s\n' "$wt_path"
+          return 0
+        fi
+        ;;
+    esac
+  done < <(git -C "$repo_root" worktree list --porcelain 2>/dev/null || true)
+
+  printf '%s\n' "$repo_root"
+}
+
+cmd_merge() {
+  local abort=false
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --abort)
+        abort=true
+        shift
+        ;;
+      -h | --help)
+        cat <<'EOF'
+Usage: wfw merge [--abort]
+
+Merge the current feature worktree branch into the repo default branch (main/master).
+
+Run from inside a leased worktree after committing your feature work.
+On conflict, resolve files in the main worktree, commit, then return here.
+
+  wfw merge --abort   Abort an in-progress merge in the main worktree
+
+Parallel features that touch the same files may conflict. Merge one feature at a time.
+After the first merge lands, rebase or merge main into the other feature worktrees before merging them.
+EOF
+        return 0
+        ;;
+      *)
+        echo "Error: unknown merge argument '$1'." >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  require_cmd git
+  require_feature_worktree
+
+  local feature_wt feature_branch repo_root default_branch main_wt
+  feature_wt="$(pwd -P)"
+  feature_branch="$(git branch --show-current)"
+  repo_root="$(resolve_repo_root)"
+  default_branch="$(resolve_default_branch "$repo_root")"
+  main_wt="$(resolve_main_worktree "$repo_root" "$default_branch")"
+
+  if [ "$abort" = true ]; then
+    if git -C "$main_wt" merge --abort >/dev/null 2>&1; then
+      echo "Aborted merge in $main_wt"
+    else
+      echo "No merge in progress in $main_wt"
+    fi
+    return 0
+  fi
+
+  if [ "$feature_branch" = "$default_branch" ]; then
+    echo "Error: already on $default_branch. Run wfw merge from a feature worktree." >&2
+    exit 1
+  fi
+
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "Error: commit or stash changes in the feature worktree first." >&2
+    exit 1
+  fi
+
+  if ! git -C "$main_wt" diff --quiet || ! git -C "$main_wt" diff --cached --quiet; then
+    echo "Error: main worktree has uncommitted changes ($main_wt)." >&2
+    exit 1
+  fi
+
+  if git -C "$main_wt" merge --no-edit "$feature_branch"; then
+    echo "Merged $feature_branch into $default_branch."
+    echo "Main worktree: $main_wt"
+    cleanup_worktree_after_ship
+    return 0
+  fi
+
+  cat >&2 <<EOF
+Merge conflict while merging $feature_branch into $default_branch.
+
+Resolve in the main worktree:
+  cd $main_wt
+  git status
+  # edit conflicted files, git add ..., git commit
+
+Abort the merge:
+  wfw merge --abort
+
+Conflicted files:
+EOF
+  git -C "$main_wt" diff --name-only --diff-filter=U >&2 || true
+  exit 1
+}
+
 resolve_agent_cli() {
   if [ -n "${WFW_AGENT_CLI:-}" ]; then
     if ! command -v "$WFW_AGENT_CLI" >/dev/null 2>&1; then
@@ -359,8 +495,48 @@ lease_feature_worktree() {
 }
 
 cmd_start() {
-  local feature_name="${1:-}"
-  local worktree_path
+  local feature_name=""
+  local print_path=false
+  local enter=false
+  local no_enter=false
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --path)
+        print_path=true
+        shift
+        ;;
+      --enter)
+        enter=true
+        shift
+        ;;
+      --no-enter)
+        no_enter=true
+        shift
+        ;;
+      -h | --help)
+        cat <<'EOF'
+Usage: wfw start <feature-name> [--path | --enter | --no-enter]
+
+Leases a treehouse worktree and wires the shared Lavish plan symlink.
+
+  --path      Print worktree path only (for scripts / MCP)
+  --enter     Switch into the worktree shell (default when stdout is a TTY)
+  --no-enter  Print cd hint only
+EOF
+        return 0
+        ;;
+      *)
+        if [ -z "$feature_name" ]; then
+          feature_name="$1"
+          shift
+        else
+          echo "Error: unknown start argument '$1'." >&2
+          exit 1
+        fi
+        ;;
+    esac
+  done
 
   if [ -z "$feature_name" ]; then
     echo "Error: feature name is required." >&2
@@ -368,15 +544,113 @@ cmd_start() {
     exit 1
   fi
 
+  local worktree_path
   worktree_path="$(lease_feature_worktree "$feature_name")"
 
+  if [ "$print_path" = true ]; then
+    printf '%s\n' "$worktree_path"
+    return 0
+  fi
+
+  if [ "$enter" = false ] && [ "$no_enter" = false ] && [ -t 1 ]; then
+    enter=true
+  fi
+
+  if [ "$enter" = true ]; then
+    echo "Worktree: $worktree_path" >&2
+    echo "Next: wfw plan" >&2
+    cd "$worktree_path"
+    exec "${SHELL:-/bin/bash}"
+  fi
+
   echo "cd $worktree_path"
+  echo "Tip: wfw start $feature_name --enter"
   echo "Then: wfw plan"
   if wfw_verbose; then
     local repo_root
     repo_root="$(git rev-parse --show-toplevel 2>/dev/null || dirname "$worktree_path")"
     echo "Shared plan: $ARTIFACT_LINK -> $(shared_plan_path "$repo_root")"
   fi
+}
+
+mark_plan_listening() {
+  local artifact="$1"
+  mkdir -p .wfw
+  printf '%s\n' "$(canonical_path "$artifact")" >"$LISTENING_FILE"
+}
+
+clear_plan_listening() {
+  rm -f "$LISTENING_FILE"
+}
+
+require_nonempty_artifact() {
+  local artifact="$1"
+  if [ ! -f "$artifact" ] || [ ! -s "$artifact" ]; then
+    cat >&2 <<EOF
+Error: plan artifact is empty or missing ($artifact).
+
+wfw plan does not generate HTML. Queue a prompt, build the artifact with the lavish skill, then run:
+  wfw plan
+
+Queued prompts live in $PROMPT_FILE
+EOF
+    exit 1
+  fi
+}
+
+poll_has_result() {
+  local output="$1"
+  if printf '%s\n' "$output" | grep -qE 'status: (feedback|ended)'; then
+    return 0
+  fi
+  if printf '%s\n' "$output" | grep -q 'LAVISH_AXI_POLL=' \
+    && ! printf '%s\n' "$output" | grep -q 'LAVISH_AXI_POLL_REPLY='; then
+    return 0
+  fi
+  return 1
+}
+
+lavish_poll_resilient() {
+  local artifact="$1"
+  local agent_reply="${2:-}"
+  local poll_output=""
+  local rc=0
+
+  mark_plan_listening "$artifact"
+  echo "wfw: listening for Lavish feedback on $artifact (poll resumes if interrupted)" >&2
+
+  while true; do
+    local -a poll_cmd=(npx -y lavish-axi poll "$artifact")
+    if [ -n "$agent_reply" ]; then
+      poll_cmd+=(--agent-reply "$agent_reply")
+      agent_reply=""
+    fi
+
+    set +e
+    poll_output="$("${poll_cmd[@]}" 2>&1)"
+    rc=$?
+    set -e
+
+    printf '%s\n' "$poll_output"
+
+    if [ $rc -eq 0 ] && poll_has_result "$poll_output"; then
+      clear_plan_listening
+      return 0
+    fi
+
+    if [ $rc -eq 130 ] || [ $rc -eq 143 ] || printf '%s\n' "$poll_output" | grep -q 'Poll interrupted'; then
+      echo "wfw: Lavish poll interrupted; resuming listen..." >&2
+      sleep 1
+      continue
+    fi
+
+    if [ $rc -ne 0 ]; then
+      clear_plan_listening
+      return $rc
+    fi
+
+    echo "wfw: no feedback yet; continuing to listen..." >&2
+  done
 }
 
 lavish_open_only() {
@@ -388,16 +662,20 @@ lavish_open_only() {
 lavish_open_and_poll() {
   local artifact="$1"
   require_cmd npx
+  require_nonempty_artifact "$artifact"
   npx -y lavish-axi "$artifact"
-  exec npx -y lavish-axi poll "$artifact"
+  lavish_poll_resilient "$artifact"
 }
 
 lavish_reply_and_poll() {
   local artifact="$1"
   local agent_reply="$2"
   require_cmd npx
-  npx -y lavish-axi poll "$artifact" --agent-reply "$agent_reply"
-  exec npx -y lavish-axi poll "$artifact"
+  require_nonempty_artifact "$artifact"
+  set +e
+  npx -y lavish-axi poll "$artifact" --agent-reply "$agent_reply" >/dev/null 2>&1
+  set -e
+  lavish_poll_resilient "$artifact"
 }
 
 queue_plan_prompt() {
@@ -419,10 +697,10 @@ Prompt queued in $PROMPT_FILE
 Next: build or update the Lavish HTML artifact ($artifact) using the lavish skill, then run:
   wfw plan
 
-wfw plan opens lavish-axi and long-polls until the user sends feedback.
+wfw plan opens lavish-axi and keeps listening (poll auto-resumes if your agent harness interrupts it).
 After applying feedback, run:
   wfw plan --reply "<summary of changes>"
-That posts your reply in the browser and polls again for more feedback.
+That posts your reply in the browser and listens again for more feedback.
 EOF
 }
 
@@ -675,7 +953,7 @@ main() {
   case "$command" in
     start)
       shift
-      cmd_start "${1:-}"
+      cmd_start "$@"
       ;;
     plan)
       shift
@@ -695,6 +973,10 @@ main() {
       ;;
     validate)
       cmd_validate
+      ;;
+    merge)
+      shift
+      cmd_merge "$@"
       ;;
     setup)
       cmd_setup

@@ -16,7 +16,13 @@ First token = subcommand; rest = args. Run matching shell via `wfw` (terminal CL
 `wfw start` wires the team plan into each leased worktree automatically.
 Users `cd` into the printed worktree, then use `wfw plan`, `wfw auto`, and `wfw validate`.
 
-**Routes:** `start <feature>` | `agent [feature]` | `plan` / `plan <prompt>` / `plan --reply "<text>"` / `prompt <text>` | `auto "<obj>"` | `validate` | `cleanup` | `treehouse …` | `lavish …` | `gnhf …` | `no-mistakes`
+**Routes:** `start <feature>` | `merge` / `merge --abort` | `agent [feature]` | `plan` / `plan <prompt>` / `plan --reply "<text>"` / `prompt <text>` | `auto "<obj>"` | `validate` | `cleanup` | `treehouse …` | `lavish …` | `gnhf …` | `no-mistakes`
+
+**`start`:** leases a worktree and **enters it automatically** when run interactively in a terminal (`wfw start <feature>`). Use `--path` for scripts or `--no-enter` to print `cd` only.
+
+**`merge`:** from a feature worktree, merges your branch into `main`/`master` at the main worktree. On conflict, fix files in the main worktree (`cd` path printed), commit, or `wfw merge --abort`. Merge parallel features one at a time; rebase other worktrees onto updated main before merging them.
+
+**`plan` listen loop:** `wfw plan` keeps listening for Lavish feedback and **auto-resumes** if the agent harness kills the poll. Build HTML before opening (`wfw plan` with no args on an empty artifact fails loudly).
 
 **`agent`:** leases a treehouse worktree (like `start`) when given a feature name, then execs your agent CLI (`claude`, `opencode`, `agy`, `gemini`, `cursor`, etc.). From inside a worktree, `wfw agent` opens the CLI there. Override with `WFW_AGENT_CLI` or `wfw agent --cli <name>`.
 
@@ -30,7 +36,7 @@ If missing, tell the user to run `wfw start <feature>` from the app repo and `cd
 2. **`wfw plan`** - opens lavish-axi on `lavish_artifact.html` and **long-polls** until the user sends feedback.
 3. After applying poll feedback, **`wfw plan --reply "<summary>"`** - posts your reply in the browser and **polls again** for more feedback. Repeat step 3 until the user ends the Lavish session.
 
-Never respond to the user in chat and end the turn while Lavish planning is active without running `wfw plan` or `wfw plan --reply` to keep polling. Use `wfw plan --open-only` to skip polling.
+Never respond to the user in chat and end the turn while Lavish planning is active without running `wfw plan` or `wfw plan --reply` to keep listening. If poll was interrupted, run `wfw plan` again - wfw resumes automatically. Use `wfw plan --open-only` to skip listening.
 
 **gnhf:** always via `wfw` with `--max-iterations 12 --max-tokens 300000` (env: `WFW_GNHF_MAX_*`).
 

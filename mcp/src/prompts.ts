@@ -15,6 +15,7 @@ Request: {{args}}
 
 Route to the correct wfw MCP tool or terminal command. Subcommands:
 - start <feature> -> wfw_start
+- merge -> wfw_merge
 - agent [feature] -> wfw_agent
 - plan [prompt] / prompt <text> -> wfw_plan or wfw_prompt
 - auto "<objective>" -> wfw_auto
@@ -25,7 +26,7 @@ Primary value: one shared Lavish plan across parallel treehouse worktrees.
 Each wfw start leases a worktree with lavish_artifact.html symlinked to
 my_team_workspace/shared_lavish_plan.html at the git repo root.
 
-Always invoke MCP tools (wfw_start, wfw_agent, wfw_plan, wfw_prompt, wfw_auto, wfw_validate, wfw_cleanup)
+Always invoke MCP tools (wfw_start, wfw_merge, wfw_agent, wfw_plan, wfw_prompt, wfw_auto, wfw_validate, wfw_cleanup)
 rather than reimplementing logic. Set project_root when the client cwd is not the repo.`;
 
 export const WFW_PROMPTS: WfwPromptDefinition[] = [
@@ -77,7 +78,7 @@ If the user provided text:
 If no prompt text, use wfw_plan with no prompt to open and long-poll.
 
 After poll feedback, apply changes to the HTML artifact, then call wfw_plan with agent_reply="<summary>".
-That posts your reply in Lavish and polls again - do not end the turn without polling again during an active plan review.`,
+That posts your reply in Lavish and polls again - wfw auto-resumes listen if the harness interrupts the poll.`,
         args,
       ),
   },

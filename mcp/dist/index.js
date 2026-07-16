@@ -28,7 +28,7 @@ const server = new McpServer({
 server.tool("wfw_start", "Bootstrap team workspace, shared Lavish plan symlink, and lease a treehouse worktree (wfw start)", {
     feature: z.string().describe("Feature name for treehouse --lease-holder"),
     project_root: projectRootSchema,
-}, async ({ feature, project_root }) => invokeWfw(["start", feature], project_root));
+}, async ({ feature, project_root }) => invokeWfw(["start", "--no-enter", feature], project_root));
 server.tool("wfw_plan", "Open the team Lavish plan and long-poll for user feedback (wfw plan). After applying feedback, call again with agent_reply.", {
     prompt: z.string().optional().describe("Optional plan prompt for Lavish"),
     agent_reply: z
@@ -89,6 +89,9 @@ server.tool("wfw_auto", "Run guarded gnhf in the current worktree (wfw auto)", {
 server.tool("wfw_validate", "Push HEAD through no-mistakes pipeline (wfw validate); returns lease and prunes merged worktrees on success", {
     project_root: projectRootSchema,
 }, async ({ project_root }) => invokeWfw(["validate"], project_root));
+server.tool("wfw_merge", "Merge the current feature worktree branch into main (wfw merge). Use --abort via terminal for conflict recovery.", {
+    project_root: projectRootSchema,
+}, async ({ project_root }) => invokeWfw(["merge"], project_root));
 server.tool("wfw_cleanup", "Prune merged idle treehouse worktrees (wfw cleanup)", {
     global: z.boolean().optional().describe("Prune all pools under treehouse root (treehouse prune --all)"),
     project_root: projectRootSchema,

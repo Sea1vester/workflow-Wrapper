@@ -36,7 +36,7 @@ server.tool(
     feature: z.string().describe("Feature name for treehouse --lease-holder"),
     project_root: projectRootSchema,
   },
-  async ({ feature, project_root }) => invokeWfw(["start", feature], project_root),
+  async ({ feature, project_root }) => invokeWfw(["start", "--no-enter", feature], project_root),
 );
 
 server.tool(
@@ -126,6 +126,15 @@ server.tool(
     project_root: projectRootSchema,
   },
   async ({ project_root }) => invokeWfw(["validate"], project_root),
+);
+
+server.tool(
+  "wfw_merge",
+  "Merge the current feature worktree branch into main (wfw merge). Use --abort via terminal for conflict recovery.",
+  {
+    project_root: projectRootSchema,
+  },
+  async ({ project_root }) => invokeWfw(["merge"], project_root),
 );
 
 server.tool(

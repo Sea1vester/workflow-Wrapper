@@ -145,6 +145,8 @@ exit 1
 EOF
 chmod +x "$MOCK_BIN/npx"
 
+printf '%s\n' '<!DOCTYPE html><html><body>plan</body></html>' >"$SHARED_PLAN"
+
 PLAN_OUT="$(cd "$WORKTREE_A" && PATH="$MOCK_BIN:$PATH" "$WFW_BIN" plan 2>&1)" || fail "wfw plan failed: $PLAN_OUT"
 echo "$PLAN_OUT" | grep -q 'LAVISH_AXI_ARTIFACT=lavish_artifact.html' || fail "wfw plan did not open lavish_artifact.html: $PLAN_OUT"
 echo "$PLAN_OUT" | grep -q 'LAVISH_AXI_POLL=lavish_artifact.html' || fail "wfw plan did not poll lavish_artifact.html: $PLAN_OUT"
