@@ -121,5 +121,32 @@ grep -q "keep (verified)" "$WORK/.wfw/auto/context.md" || fail "context missing 
 grep -q "objective verified" <<<"$LOOP_OUT" || fail "success message missing: $LOOP_OUT"
 pass "wfw auto reverts a failing iteration, keeps a verified one, and stops"
 
+# --- agent no-op fails fast instead of burning the cap ---
+NOOP="$TEST_DIR/noop"
+setup_worktree "$NOOP"
+NOOP_CALLS="$TEST_DIR/noop-calls"
+cat >"$MOCK_BIN/noop-agent" <<EOF
+#!/usr/bin/env bash
+n=\$(( \$(cat "$NOOP_CALLS" 2>/dev/null || echo 0) + 1 ))
+echo "\$n" >"$NOOP_CALLS"
+exit 0
+EOF
+chmod +x "$MOCK_BIN/noop-agent"
+
+set +e
+NOOP_OUT="$(
+  cd "$NOOP" && PATH="$MOCK_BIN:$PATH" NOOP_CALLS="$NOOP_CALLS" \
+    WFW_AGENT_CLI=noop-agent \
+    WFW_TEST_CMD="true" \
+    WFW_AUTO_MAX_ITERATIONS=5 \
+    "$WFW_BIN" auto "do nothing observable" 2>&1
+)"
+NOOP_RC=$?
+set -e
+[ "$NOOP_RC" -ne 0 ] || fail "no-op agent should abort the loop: $NOOP_OUT"
+[ "$(cat "$NOOP_CALLS")" = "1" ] || fail "no-op agent should abort on the first iteration, got $(cat "$NOOP_CALLS")"
+printf '%s\n' "$NOOP_OUT" | grep -q 'made no changes' || fail "expected no-op abort message: $NOOP_OUT"
+pass "wfw auto aborts early when the agent makes no changes"
+
 echo ""
 echo "All wfw auto checks passed."

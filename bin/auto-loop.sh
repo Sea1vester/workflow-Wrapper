@@ -175,6 +175,7 @@ auto_files_touched() {
     path=$2
     if ($1 ~ /^R/) path=$4
     if (path ~ /^\.wfw(\/|$)/) next
+    if (path == "lavish_artifact.html") next
     if (path != "") print path
   }' | awk 'NR > 1 { printf ", " } { printf "%s", $0 } END { print "" }'
 }
@@ -343,6 +344,23 @@ run_auto_loop() {
 
     files="$(auto_files_touched || true)"
     auto_write_status "tests" "$iter" "$max" "${tests_result:-pending}" "running tests" ""
+
+    if [ -z "$files" ] && [ ! -f "$WFW_AUTO_DIR/DONE" ]; then
+      # A turn that changed nothing and did not claim DONE is not an experiment.
+      # Usually the agent CLI rejected the invocation. Fail now instead of
+      # burning the whole cap on silent no-ops.
+      auto_write_status "aborted" "$iter" "$max" "pending" "agent made no changes; aborting" "failed"
+      auto_stop_tui
+      auto_append_context "$iter" "aborted (agent no-op)" "n/a" "" "$(auto_excerpt "$WFW_AUTO_DIR/agent.log")"
+      {
+        echo "Error: the coding agent made no changes and did not write DONE (iteration ${iter})."
+        echo "The agent CLI likely rejected the invocation or its print mode is not wired up."
+        echo "Full agent output:"
+      } >&2
+      cat "$WFW_AUTO_DIR/agent.log" >&2 || true
+      trap - EXIT INT TERM
+      return 1
+    fi
 
     set +e
     bash -c "$test_cmd" >"$WFW_AUTO_DIR/tests.log" 2>&1
