@@ -781,10 +781,9 @@ lavish_reply_and_poll() {
   local agent_reply="$2"
   require_cmd npx
   require_nonempty_artifact "$artifact"
-  set +e
-  npx -y lavish-axi poll "$artifact" --agent-reply "$agent_reply" >/dev/null 2>&1
-  set -e
-  lavish_poll_resilient "$artifact"
+  # One poll: post the reply then wait. A throwaway --agent-reply poll would
+  # consume the next "Send to Agent" and drop it, so the user had to send twice.
+  lavish_poll_resilient "$artifact" "$agent_reply"
 }
 
 queue_plan_prompt() {
@@ -899,6 +898,7 @@ cmd_auto() {
   if wfw_verbose; then
     echo "auto loop: max-iterations=$AUTO_MAX_ITERATIONS" >&2
   fi
+  # shellcheck disable=SC1091
   # shellcheck source=bin/auto-loop.sh
   source "$(wfw_root)/bin/auto-loop.sh"
   run_auto_loop "$objective"

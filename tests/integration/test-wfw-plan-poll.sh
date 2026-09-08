@@ -16,23 +16,28 @@ pass() {
   echo "PASS: $*"
 }
 
+NPX_LOG="$TEST_DIR/npx-args.log"
 MOCK_BIN="$TEST_DIR/mock-bin"
 mkdir -p "$MOCK_BIN"
-cat >"$MOCK_BIN/npx" <<'EOF'
+cat >"$MOCK_BIN/npx" <<EOF
 #!/usr/bin/env bash
-if [ "$1" = "-y" ] && [ "$2" = "lavish-axi" ]; then
-  if [ "$3" = "poll" ]; then
-    if [ "${5:-}" = "--agent-reply" ]; then
-      echo "LAVISH_AXI_POLL_REPLY=$4"
+printf '%s\n' "\$*" >>"$NPX_LOG"
+if [ "\$1" = "-y" ] && [ "\$2" = "lavish-axi" ]; then
+  if [ "\$3" = "poll" ]; then
+    if [ "\${5:-}" = "--agent-reply" ]; then
+      echo "status: feedback"
+      echo "prompts[1]: first queued lavish message"
+      echo "LAVISH_AXI_POLL_REPLY=\$4"
       exit 0
     fi
-    echo "LAVISH_AXI_POLL=$4"
+    echo "status: feedback"
+    echo "LAVISH_AXI_POLL=\$4"
     exit 0
   fi
-  echo "LAVISH_AXI_ARTIFACT=$3"
+  echo "LAVISH_AXI_ARTIFACT=\$3"
   exit 0
 fi
-echo "mock npx: unexpected args: $*" >&2
+echo "mock npx: unexpected args: \$*" >&2
 exit 1
 EOF
 chmod +x "$MOCK_BIN/npx"
@@ -42,6 +47,7 @@ mkdir -p "$WORKDIR/.lavish"
 printf '%s\n' '<!DOCTYPE html><html><body>plan</body></html>' >"$WORKDIR/.lavish/plan.html"
 
 run_wfw() {
+  : >"$NPX_LOG"
   (cd "$WORKDIR" && PATH="$MOCK_BIN:$PATH" "$WFW_BIN" "$@")
 }
 
@@ -60,8 +66,12 @@ pass "wfw plan <prompt> queues only (no poll before agent builds HTML)"
 
 REPLY_OUT="$(run_wfw plan --reply "Updated auth section" 2>&1)" || fail "wfw plan --reply failed: $REPLY_OUT"
 echo "$REPLY_OUT" | grep -q 'listening for Lavish feedback' || fail "expected listen banner on reply: $REPLY_OUT"
-echo "$REPLY_OUT" | grep -q 'LAVISH_AXI_POLL=.lavish/plan.html' || fail "expected follow-up poll: $REPLY_OUT"
-pass "wfw plan --reply posts agent reply and listens again"
+echo "$REPLY_OUT" | grep -q 'first queued lavish message' || fail "reply poll swallowed queued lavish feedback: $REPLY_OUT"
+echo "$REPLY_OUT" | grep -q 'LAVISH_AXI_POLL=' && fail "reply should not start a second poll after --agent-reply: $REPLY_OUT"
+poll_calls="$(grep -c 'lavish-axi poll' "$NPX_LOG" || true)"
+[ "$poll_calls" = "1" ] || fail "expected one poll for --reply, got $poll_calls: $(cat "$NPX_LOG")"
+grep -q -- '--agent-reply' "$NPX_LOG" || fail "expected --agent-reply on the listen poll: $(cat "$NPX_LOG")"
+pass "wfw plan --reply posts agent reply and listens on the same poll"
 
 echo ""
 echo "All wfw plan poll sequencing checks passed."
