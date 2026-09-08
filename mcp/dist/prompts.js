@@ -89,13 +89,14 @@ Detects claude, opencode, agy, gemini, cursor, or agent on PATH (override: WFW_A
     },
     {
         name: "wfw-auto",
-        description: "Run guarded gnhf in the current worktree (wfw auto)",
-        args: [{ name: "objective", description: "Objective passed to gnhf", required: true }],
+        description: "Run the test-gated experiment loop in the current worktree (wfw auto)",
+        args: [{ name: "objective", description: "Objective for the auto loop", required: true }],
         template: (args) => fill(`Run workflowWrapper auto with objective: {{objective}}
 
 Use the wfw_auto MCP tool with objective="{{objective}}".
 
-Guardrails: 12 iterations, 300k tokens max.`, args),
+Loop: one agent change per iteration, keep or revert by tests.
+Stops when .wfw/auto/DONE exists and tests pass (default cap 12 iterations).`, args),
     },
     {
         name: "wfw-validate",

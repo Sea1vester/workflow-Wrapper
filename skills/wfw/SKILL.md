@@ -1,9 +1,9 @@
 ---
 name: wfw
 description: >-
-  /wfw hackathon workflow: treehouse worktrees, Lavish plans, guarded gnhf, no-mistakes.
+  /wfw hackathon workflow: treehouse worktrees, Lavish plans, autoresearch-style auto loop, no-mistakes.
   Use when user invokes /wfw.
-argument-hint: start <feature> | agent [feature] | plan [prompt] | plan --reply "<text>" | prompt <text> | auto "..." | validate | cleanup | treehouse | lavish | gnhf | no-mistakes
+argument-hint: start <feature> | agent [feature] | plan [prompt] | plan --reply "<text>" | prompt <text> | auto "..." | validate | cleanup | treehouse | lavish | no-mistakes
 ---
 
 # /wfw (LLM slash command only)
@@ -16,7 +16,7 @@ First token = subcommand; rest = args. Run matching shell via `wfw` (terminal CL
 `wfw start` wires the team plan into each leased worktree automatically.
 Users `cd` into the printed worktree, then use `wfw plan`, `wfw auto`, and `wfw validate`.
 
-**Routes:** `start <feature>` | `merge` / `merge --abort` | `agent [feature]` | `plan` / `plan <prompt>` / `plan --reply "<text>"` / `prompt <text>` | `auto "<obj>"` | `validate` | `cleanup` | `treehouse …` | `lavish …` | `gnhf …` | `no-mistakes`
+**Routes:** `start <feature>` | `merge` / `merge --abort` | `agent [feature]` | `plan` / `plan <prompt>` / `plan --reply "<text>"` / `prompt <text>` | `auto "<obj>"` | `validate` | `cleanup` | `treehouse …` | `lavish …` | `no-mistakes`
 
 **`start`:** leases a worktree and **enters it automatically** when run interactively in a terminal (`wfw start <feature>`). Creates git branch `feature/<name>` (treehouse pools use detached HEAD; wfw fixes that). Use `--path` for scripts or `--no-enter` to print `cd` only.
 
@@ -38,7 +38,7 @@ If missing, tell the user to run `wfw start <feature>` from the app repo and `cd
 
 Never respond to the user in chat and end the turn while Lavish planning is active without running `wfw plan` or `wfw plan --reply` to keep listening. If poll was interrupted, run `wfw plan` again - wfw resumes automatically. Use `wfw plan --open-only` to skip listening.
 
-**gnhf:** always via `wfw` with `--max-iterations 12 --max-tokens 300000` (env: `WFW_GNHF_MAX_*`).
+**`auto`:** experiment loop in the current worktree. One agent change per iteration, then the repo test command. Failed iterations revert. Context accumulates in `.wfw/auto/context.md`. The loop closes when `.wfw/auto/DONE` exists and tests pass. Cap: `WFW_AUTO_MAX_ITERATIONS` (default 12). Do not invoke gnhf.
 
 **Install:** `npm install -g github:Sea1vester/workflow-Wrapper` (updates: rerun the same command).
 

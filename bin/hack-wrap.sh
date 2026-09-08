@@ -6,8 +6,7 @@ SHARED_PLAN="shared_lavish_plan.html"
 ARTIFACT_LINK="lavish_artifact.html"
 PROMPT_FILE=".wfw/last-prompt.txt"
 LISTENING_FILE=".wfw/plan-listening"
-GNHF_MAX_ITERATIONS="${WFW_GNHF_MAX_ITERATIONS:-12}"
-GNHF_MAX_TOKENS="${WFW_GNHF_MAX_TOKENS:-300000}"
+AUTO_MAX_ITERATIONS="${WFW_AUTO_MAX_ITERATIONS:-12}"
 NO_MISTAKES_SKIP="${WFW_NO_MISTAKES_SKIP:-}"
 
 require_cmd() {
@@ -26,7 +25,7 @@ usage() {
   cat <<'EOF'
 workflowWrapper (wfw) - hackathon orchestration CLI
 
-Integration layer for treehouse + lavish + gnhf + no-mistakes.
+Integration layer for treehouse + lavish + no-mistakes, plus an autoresearch-style auto loop.
 All shared Lavish plan wiring is handled automatically by wfw start.
 
 Workflow commands:
@@ -37,7 +36,7 @@ Workflow commands:
   wfw plan --reply "<text>"      Post agent reply in Lavish and poll again for more feedback
   wfw plan --open-only [prompt]  Open browser only (no poll)
   wfw prompt "<prompt>"          Queue plan prompt (then run wfw plan to open + poll)
-  wfw auto "<objective>"         Run gnhf with guardrails in current worktree
+  wfw auto "<objective>"         Experiment loop: one agent change per iteration, keep/revert by tests
   wfw agent [feature] [-- args]  Lease worktree (if needed) and open your agent CLI
   wfw merge [--abort]            Merge feature branch into main (from leased worktree)
   wfw validate                   Ship current branch through no-mistakes (worktree required)
@@ -47,12 +46,12 @@ Workflow commands:
 Passthrough commands (full CLI retained):
   wfw treehouse <args>           e.g. wfw treehouse status
   wfw lavish <args>              e.g. wfw lavish poll lavish_artifact.html
-  wfw gnhf <args>                gnhf with guardrails applied
   wfw no-mistakes [validate]       Safe no-mistakes push from worktree
 
-gnhf guardrails (wfw auto and wfw gnhf):
-  Defaults: --max-iterations 12, --max-tokens 300000
-  Override: WFW_GNHF_MAX_ITERATIONS, WFW_GNHF_MAX_TOKENS
+auto loop (wfw auto):
+  One coding-agent change per iteration, then the repo test command.
+  Keep on pass, revert on fail. Stops when .wfw/auto/DONE exists and tests pass.
+  Default cap: 12 iterations (WFW_AUTO_MAX_ITERATIONS). Test command: WFW_TEST_CMD.
 
 no-mistakes validate (wfw validate):
   Optional skip steps via WFW_NO_MISTAKES_SKIP (e.g. document)
@@ -170,6 +169,7 @@ append_git_exclude_pattern() {
 
 append_git_exclude() {
   append_git_exclude_pattern "$ARTIFACT_LINK"
+  append_git_exclude_pattern ".wfw/auto/"
 }
 
 append_shared_plan_git_exclude() {
@@ -228,23 +228,13 @@ print_first_start_setup() {
 First-time setup - install once per machine:
   wfw         npm install -g github:Sea1vester/workflow-Wrapper
   treehouse   worktree pool manager (must be on PATH)
-  gnhf        autonomous coding agent (must be on PATH)
+  agent CLI   claude, opencode, agy, gemini, or Cursor agent (for wfw auto / wfw agent)
   node + npm  required for wfw plan / wfw lavish (npx lavish-axi)
   no-mistakes git remote named "no-mistakes" on your target repo
 
 EOF
 }
 
-run_gnhf_guarded() {
-  require_cmd gnhf
-  if wfw_verbose; then
-    echo "gnhf guardrails: max-iterations=$GNHF_MAX_ITERATIONS, max-tokens=$GNHF_MAX_TOKENS" >&2
-  fi
-  exec gnhf \
-    --max-iterations "$GNHF_MAX_ITERATIONS" \
-    --max-tokens "$GNHF_MAX_TOKENS" \
-    "$@"
-}
 
 require_no_mistakes_remote() {
   if git remote get-url no-mistakes >/dev/null 2>&1; then
@@ -385,8 +375,7 @@ EOF
   require_cmd git
   require_feature_worktree
 
-  local feature_wt feature_branch repo_root default_branch main_wt
-  feature_wt="$(pwd -P)"
+  local feature_branch repo_root default_branch main_wt
   feature_branch="$(resolve_feature_branch)"
   repo_root="$(resolve_repo_root)"
   default_branch="$(resolve_default_branch "$repo_root")"
@@ -907,7 +896,12 @@ cmd_auto() {
   fi
 
   require_feature_worktree
-  run_gnhf_guarded "$objective"
+  if wfw_verbose; then
+    echo "auto loop: max-iterations=$AUTO_MAX_ITERATIONS" >&2
+  fi
+  # shellcheck source=bin/auto-loop.sh
+  source "$(wfw_root)/bin/auto-loop.sh"
+  run_auto_loop "$objective"
 }
 
 cmd_agent() {
@@ -1026,11 +1020,8 @@ cmd_passthrough_lavish() {
 }
 
 cmd_passthrough_gnhf() {
-  if [ $# -eq 0 ]; then
-    echo "Error: gnhf requires arguments." >&2
-    exit 1
-  fi
-  run_gnhf_guarded "$@"
+  echo "Error: gnhf is removed. Use: wfw auto \"<objective>\"" >&2
+  exit 1
 }
 
 cmd_passthrough_no_mistakes() {

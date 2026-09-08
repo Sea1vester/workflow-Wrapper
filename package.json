@@ -1,7 +1,7 @@
 {
   "name": "workflow-wrapper",
   "version": "1.4.8",
-  "description": "Hackathon CLI orchestration layer for treehouse, lavish, gnhf, and no-mistakes",
+  "description": "Hackathon CLI orchestration layer for treehouse, lavish, no-mistakes, and an autoresearch-style auto loop",
   "bin": {
     "wfw": "./bin/hack-wrap.sh",
     "wfw-mcp": "./mcp/dist/index.js"
@@ -12,7 +12,7 @@
     "setup": "bash bin/postinstall.sh",
     "install-mcp": "bash bin/install-mcp.sh",
     "install-skill": "bash bin/install-skill.sh",
-    "test:integration": "bash tests/integration/test-shared-lavish-plan.sh && bash tests/integration/test-wfw-plan-poll.sh && bash tests/integration/test-wfw-agent.sh"
+    "test:integration": "bash tests/integration/test-shared-lavish-plan.sh && bash tests/integration/test-wfw-plan-poll.sh && bash tests/integration/test-wfw-agent.sh && bash tests/integration/test-wfw-auto.sh"
   },
   "files": [
     "bin",
@@ -27,7 +27,7 @@
     "hackathon",
     "treehouse",
     "lavish",
-    "gnhf",
+    "autoresearch",
     "no-mistakes"
   ],
   "license": "MIT",

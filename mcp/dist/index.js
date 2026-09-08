@@ -82,8 +82,8 @@ server.tool("wfw_agent", "Lease a treehouse worktree (if needed) and open the us
     }
     return invokeWfw(args, project_root);
 });
-server.tool("wfw_auto", "Run guarded gnhf in the current worktree (wfw auto)", {
-    objective: z.string().describe("Objective passed to gnhf"),
+server.tool("wfw_auto", "Run the test-gated experiment loop in the current worktree (wfw auto)", {
+    objective: z.string().describe("Objective for the auto loop"),
     project_root: projectRootSchema,
 }, async ({ objective, project_root }) => invokeWfw(["auto", objective], project_root));
 server.tool("wfw_validate", "Push HEAD through no-mistakes pipeline (wfw validate); returns lease and prunes merged worktrees on success", {

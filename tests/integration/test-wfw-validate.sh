@@ -43,7 +43,7 @@ WORKDIR="$TEST_DIR/worktree"
 mkdir -p "$WORKDIR"
 ln -sf /tmp/shared-plan.html "$WORKDIR/lavish_artifact.html"
 
-OUT="$(cd "$WORKDIR" && PATH="$MOCK_BIN:$PATH" WFW_NO_MISTAKES_SKIP= WFW_SKIP_WORKTREE_CLEANUP=1 "$WFW_BIN" validate 2>&1)" \
+OUT="$(cd "$WORKDIR" && PATH="$MOCK_BIN:$PATH" WFW_NO_MISTAKES_SKIP='' WFW_SKIP_WORKTREE_CLEANUP=1 "$WFW_BIN" validate 2>&1)" \
   || fail "wfw validate failed with empty WFW_NO_MISTAKES_SKIP: $OUT"
 echo "$OUT" | grep -q 'MOCK_GIT_PUSH=push no-mistakes HEAD' || fail "unexpected push: $OUT"
 echo "$OUT" | grep -q 'no-mistakes.skip' && fail "skip option should be omitted when unset: $OUT"

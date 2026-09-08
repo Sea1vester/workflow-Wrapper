@@ -1,6 +1,6 @@
 # workflowWrapper (wfw)
 
-CLI that integrates **treehouse**, **lavish**, **gnhf**, and **no-mistakes** into one workflow.
+CLI that integrates **treehouse**, **lavish**, and **no-mistakes** into one workflow, with an autoresearch-style `wfw auto` loop.
 
 Use the **terminal CLI** (`wfw`) or the **MCP server** (`wfw-mcp`) from any LLM client that supports Model Context Protocol.
 
@@ -21,11 +21,11 @@ Edits from any lease (or `wfw plan` from any worktree) are visible to every agen
 ```
 Nothing from the plan enters git - wfw adds the right `.git/info/exclude` entries on `wfw start`.
 
-wfw also wraps the four tools behind a small command set, applies gnhf guardrails by default (12 iterations, 300k tokens), and skips the slow no-mistakes document step on `wfw validate` unless you override it.
+wfw also wraps those tools behind a small command set, runs an experiment loop on `wfw auto` (12 iterations by default, keep or revert by tests), and skips the slow no-mistakes document step on `wfw validate` unless you override it.
 
-## Why not just use the 4 tools separately
+## Why not just use the tools separately
 
-You can run treehouse, lavish, gnhf, and no-mistakes on their own.
+You can run treehouse, lavish, and no-mistakes on their own.
 wfw exists because the combined workflow has a lot of easy-to-get-wrong glue:
 
 | If you DIY | What goes wrong | What wfw does |
@@ -34,14 +34,14 @@ wfw exists because the combined workflow has a lot of easy-to-get-wrong glue:
 | Lavish on different HTML paths per worktree | Plans diverge; teammates paste screenshots into chat | One `shared_lavish_plan.html` at the app repo; every lease opens `lavish_artifact.html` pointing at it |
 | Manual symlink + git exclude | Plan file gets committed, or symlinks break on re-lease | Creates/repairs symlinks, excludes plan + symlink from git automatically |
 | `treehouse init` in the wrong directory | `treehouse.toml` under `my_team_workspace/` instead of repo root | Anchors config and shared workspace to the git repo root |
-| Raw `gnhf` with no caps | Runaway token spend on hackathon tasks | `wfw auto` / `wfw gnhf` apply iteration and token guardrails |
+| Raw overnight agent loop with no test gate | Loop never stops, or stops on a guess | `wfw auto` keeps or reverts each iteration by tests and closes only when `.wfw/auto/DONE` exists and tests pass |
 | `git push origin` + manual PR + CI babysitting | Review and test happen after the branch is public | `wfw validate` pushes through the no-mistakes gate from the leased worktree |
 
 **When to skip wfw:** you only need one tool in isolation (e.g. a single `treehouse` lease with no shared plan), or you already have your own orchestration.
 
 ## Install
 
-Install the four underlying tools first, then workflow-wrapper.
+Install the underlying tools first, then workflow-wrapper.
 `workflow-wrapper` is its own npm package - install it once per machine, not inside your app repo.
 
 ### 1. treehouse (worktree pool)
@@ -66,13 +66,15 @@ npm install -g lavish-axi
 npx -y lavish-axi <artifact.html>
 ```
 
-### 3. gnhf (autonomous coding agent)
+### 3. Agent CLI (autonomous coding)
 
-[gnhf](https://github.com/kunchenguid/gnhf) runs long agent loops against your repo.
+`wfw auto` and `wfw agent` use whatever coding agent you already have on PATH.
 
-```bash
-npm install -g gnhf
-```
+Supported print-mode CLIs: `claude`, `opencode`, `agy`, `gemini`, and the Cursor `agent` / `cursor-agent` binary.
+
+Override detection with `WFW_AGENT_CLI`.
+
+No extra installer beyond the agent you already use.
 
 ### 4. no-mistakes (pre-push validation gate)
 
@@ -123,7 +125,7 @@ Set `WFW_SKIP_POSTINSTALL=1` to skip skill/MCP refresh (e.g. CI).
 ### Verify install
 
 ```bash
-command -v treehouse gnhf wfw wfw-mcp git gh
+command -v treehouse wfw wfw-mcp git gh
 node --version
 ```
 
@@ -168,10 +170,16 @@ Most commands after `start` run inside the leased worktree.
 
 | Command | Purpose | Usage |
 |---------|---------|-------|
-| `wfw auto "<objective>"` | Run gnhf with guardrails in current worktree | `wfw auto "Implement the Lavish plan"` |
+| `wfw auto "<objective>"` | Experiment loop in the current worktree until tests verify the objective | `wfw auto "Implement the Lavish plan"` |
 | `wfw validate` | Push through no-mistakes (review, tests, PR) | `wfw validate` |
 | `wfw merge` | Merge feature branch into `main`/`master` locally | `wfw merge` (from feature worktree, after commit) |
 | `wfw merge --abort` | Abort an in-progress merge on main | `wfw merge --abort` |
+
+`wfw auto` is an experiment loop, not a single agent chat.
+Each iteration the coding agent makes one change, wfw runs the test command, and a failing change is reverted.
+The loop keeps a running log in `.wfw/auto/context.md` so later iterations see prior failures.
+It closes only when the agent writes `.wfw/auto/DONE` and tests pass.
+A TTY shows a small looping mascot plus iteration and test status; non-TTY (MCP/CI) prints the same status to stderr.
 
 **Ship paths:** `wfw validate` for the no-mistakes PR gate; `wfw merge` for a direct local merge.
 On merge conflict, fix files in the main worktree path wfw prints, commit, or run `wfw merge --abort`.
@@ -184,7 +192,6 @@ Merge parallel features one at a time; rebase other worktrees onto updated `main
 | `wfw setup` | Refresh `/wfw` skill and MCP config | `wfw setup` (after install or update) |
 | `wfw treehouse <args>` | Raw treehouse CLI | `wfw treehouse status` |
 | `wfw lavish <args>` | Raw lavish-axi CLI | `wfw lavish poll lavish_artifact.html` |
-| `wfw gnhf <args>` | gnhf with wfw guardrails | `wfw gnhf "fix the tests"` |
 | `wfw no-mistakes` | Same as `wfw validate` from a worktree | `wfw no-mistakes` |
 
 **Worktree required** for `plan`, `auto`, `validate`, and `merge`.
@@ -197,12 +204,13 @@ Treehouse leases start in **detached HEAD** (by design).
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `WFW_GNHF_MAX_ITERATIONS` | `12` | gnhf iteration cap for `wfw auto` / `wfw gnhf` |
-| `WFW_GNHF_MAX_TOKENS` | `300000` | gnhf token cap |
+| `WFW_AUTO_MAX_ITERATIONS` | `12` | Iteration cap for `wfw auto` |
+| `WFW_TEST_CMD` | auto-detect | Test command used as the auto-loop metric (else `.no-mistakes.yaml` `commands.test`, `package.json` `test`, or `make test`) |
+| `WFW_AUTO_ASK_PERMISSIONS` | `0` | Set to `1` to prompt the agent CLI for tool permissions instead of skipping them |
 | `WFW_NO_MISTAKES_SKIP` | `document` | Skip no-mistakes document step on `wfw validate` (set empty to disable) |
-| `WFW_VERBOSE` | `0` | Set to `1` to print symlink paths and gnhf guardrail lines |
+| `WFW_VERBOSE` | `0` | Set to `1` to print symlink paths and auto-loop diagnostics |
 | `WFW_PROJECT_ROOT` | cwd | Project directory for MCP tools |
-| `WFW_AGENT_CLI` | auto-detect | Agent CLI for `wfw agent` (`claude`, `opencode`, `agy`, etc.) |
+| `WFW_AGENT_CLI` | auto-detect | Agent CLI for `wfw agent` and `wfw auto` (`claude`, `opencode`, `agy`, etc.) |
 | `WFW_SKIP_WORKTREE_CLEANUP` | `0` | Set to `1` to skip `treehouse return` + `prune` after `wfw validate` |
 
 ## MCP tools (LLM-agnostic)
@@ -258,6 +266,9 @@ npm run test:integration
 ```
 workflow-wrapper/
   bin/hack-wrap.sh           # wfw CLI
+  bin/auto-loop.sh           # wfw auto experiment loop
+  bin/auto-agent.sh          # print-mode map for coding agents
+  bin/auto-tui.sh            # looping mascot TUI
   bin/install-mcp.sh         # MCP client config
   bin/install-skill.sh       # slash commands for LLM CLIs
   mcp/                       # wfw-mcp server + prompts/gemini
@@ -279,7 +290,7 @@ wfw plan                                            # open + listen for feedback
 # after applying feedback:
 wfw plan --reply "Updated auth section per your notes"
 
-# 3. Build in this leased worktree (guardrailed gnhf)
+# 3. Build in this leased worktree (test-gated experiment loop)
 wfw auto "Implement the approved Lavish plan"
 
 # 4. Ship: no-mistakes PR or local merge

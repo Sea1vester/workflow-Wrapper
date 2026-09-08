@@ -1,9 +1,10 @@
-description = "Run guarded gnhf in the current worktree (wfw auto)"
+description = "Run the test-gated experiment loop in the current worktree (wfw auto)"
 prompt = """
 Run workflowWrapper auto with objective: {{args}}
 
 Execute:
 !{wfw auto {{args}}}
 
-Guardrails: 12 iterations, 300k tokens max.
+Loop: one agent change per iteration, keep or revert by tests.
+Stops when .wfw/auto/DONE exists and tests pass (default cap 12 iterations).
 """

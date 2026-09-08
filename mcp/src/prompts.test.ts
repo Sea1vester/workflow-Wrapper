@@ -10,8 +10,10 @@ test("WFW_PROMPTS includes core workflow prompts", () => {
     "wfw-start",
     "wfw-plan",
     "wfw-prompt",
+    "wfw-agent",
     "wfw-auto",
     "wfw-validate",
+    "wfw-cleanup",
   ]);
 });
 
