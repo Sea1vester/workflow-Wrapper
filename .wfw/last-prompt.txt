@@ -1,0 +1,1 @@
+Improvements to wfw auto: cutting-edge loop engineering, whether we need fundamental changes, a real auto UI, and a one-line description of what the loop is doing at every stage instead of just loop 1/12.

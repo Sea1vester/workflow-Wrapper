@@ -95,17 +95,29 @@ spinner_char() {
 
 draw_frame() {
   local frame="$1"
-  local outcome phase iter max last_tests message pulse
+  local outcome phase iter max last_tests doing pulse hero
   outcome="$(read_status_value outcome "$STATUS_FILE")"
   phase="$(read_status_value phase "$STATUS_FILE")"
   iter="$(read_status_value iter "$STATUS_FILE")"
   max="$(read_status_value max "$STATUS_FILE")"
   last_tests="$(read_status_value last_tests "$STATUS_FILE")"
-  message="$(read_status_value message "$STATUS_FILE")"
+  doing="$(read_status_value doing "$STATUS_FILE")"
   pulse="$(spinner_char $((frame % 4)))"
+
+  if [ "$phase" = "agent" ]; then
+    if [ -s "$AUTO_DIR/doing" ]; then
+      hero="$(head -n 1 "$AUTO_DIR/doing")"
+    else
+      hero="Agent is naming this try"
+    fi
+  else
+    hero="${doing:-waiting}"
+  fi
 
   printf '\033[H\033[J'
   echo "wfw auto"
+  echo ""
+  echo "  ==> $hero <=="
   echo ""
   case "$outcome" in
     success) mascot_sleep ;;
@@ -115,9 +127,7 @@ draw_frame() {
   echo ""
   echo "  ${pulse} still alive"
   echo "  iteration: ${iter:-?} / ${max:-?}"
-  echo "  phase:     ${phase:-starting}"
   echo "  tests:     ${last_tests:-pending}"
-  echo "  status:    ${message:-waiting}"
   echo ""
   echo "  recent context:"
   if [ -f "$CONTEXT_FILE" ]; then

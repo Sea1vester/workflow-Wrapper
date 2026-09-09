@@ -204,7 +204,7 @@ Treehouse leases start in **detached HEAD** (by design).
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `WFW_AUTO_MAX_ITERATIONS` | `12` | Iteration cap for `wfw auto` |
+| `WFW_AUTO_MAX_ITERATIONS` | `15` | Iteration cap for `wfw auto` |
 | `WFW_TEST_CMD` | auto-detect | Test command used as the auto-loop metric (else `.no-mistakes.yaml` `commands.test`, `package.json` `test`, or `make test`) |
 | `WFW_AUTO_ASK_PERMISSIONS` | `0` | Set to `1` to prompt the agent CLI for tool permissions instead of skipping them |
 | `WFW_NO_MISTAKES_SKIP` | `document` | Skip no-mistakes document step on `wfw validate` (set empty to disable) |

@@ -75,6 +75,8 @@ cat >"$MOCK_BIN/fake-agent" <<EOF
 #!/usr/bin/env bash
 n=\$(( \$(cat "$CALLS" 2>/dev/null || echo 0) + 1 ))
 echo "\$n" >"$CALLS"
+mkdir -p .wfw/auto
+echo "Testing hypothesis \$n" >.wfw/auto/doing
 if [ "\$n" -eq 1 ]; then
   echo bad >feature.txt
   exit 0
@@ -84,7 +86,6 @@ if [ -f feature.txt ] && grep -q bad feature.txt; then
   exit 1
 fi
 echo good >feature.txt
-mkdir -p .wfw/auto
 echo implemented >.wfw/auto/DONE
 exit 0
 EOF
@@ -118,7 +119,10 @@ grep -q "Iteration 1" "$WORK/.wfw/auto/context.md" || fail "context missing iter
 grep -q "revert" "$WORK/.wfw/auto/context.md" || fail "context missing revert"
 grep -q "Iteration 2" "$WORK/.wfw/auto/context.md" || fail "context missing iteration 2"
 grep -q "keep (verified)" "$WORK/.wfw/auto/context.md" || fail "context missing verified keep"
-grep -q "objective verified" <<<"$LOOP_OUT" || fail "success message missing: $LOOP_OUT"
+grep -q "Objective verified" <<<"$LOOP_OUT" || fail "success message missing: $LOOP_OUT"
+grep -q "Testing hypothesis 1" <<<"$LOOP_OUT" || fail "agent doing line missing from stdout/err: $LOOP_OUT"
+grep -q "Running the test command" <<<"$LOOP_OUT" || fail "mechanical doing line missing: $LOOP_OUT"
+grep -q "Rolling back that try" <<<"$LOOP_OUT" || fail "mechanical doing line missing: $LOOP_OUT"
 pass "wfw auto reverts a failing iteration, keeps a verified one, and stops"
 
 # --- agent no-op fails fast instead of burning the cap ---
@@ -147,6 +151,32 @@ set -e
 [ "$(cat "$NOOP_CALLS")" = "1" ] || fail "no-op agent should abort on the first iteration, got $(cat "$NOOP_CALLS")"
 printf '%s\n' "$NOOP_OUT" | grep -q 'made no changes' || fail "expected no-op abort message: $NOOP_OUT"
 pass "wfw auto aborts early when the agent makes no changes"
+
+# --- 15-iteration default ---
+DEF_WORK="$TEST_DIR/def_loop"
+setup_worktree "$DEF_WORK"
+DEF_CALLS="$TEST_DIR/def-calls"
+cat >"$MOCK_BIN/def-agent" <<'EOF'
+#!/usr/bin/env bash
+n=$(( $(cat "$DEF_CALLS" 2>/dev/null || echo 0) + 1 ))
+echo "$n" >"$DEF_CALLS"
+echo "change $n" >feature.txt
+exit 0
+EOF
+chmod +x "$MOCK_BIN/def-agent"
+
+set +e
+DEF_OUT="$(
+  cd "$DEF_WORK" && PATH="$MOCK_BIN:$PATH" DEF_CALLS="$DEF_CALLS" \
+    WFW_AGENT_CLI=def-agent \
+    WFW_TEST_CMD="false" \
+    "$WFW_BIN" auto "fail always" 2>&1
+)"
+DEF_RC=$?
+set -e
+[ "$DEF_RC" -ne 0 ] || fail "def loop should fail"
+[ "$(cat "$DEF_CALLS")" = "15" ] || fail "expected 15 agent calls, got $(cat "$DEF_CALLS")"
+pass "wfw auto defaults to 15 iterations"
 
 echo ""
 echo "All wfw auto checks passed."
