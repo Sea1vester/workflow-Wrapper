@@ -119,6 +119,9 @@ grep -q "revert" "$WORK/.wfw/auto/context.md" || fail "context missing revert"
 grep -q "Iteration 2" "$WORK/.wfw/auto/context.md" || fail "context missing iteration 2"
 grep -q "keep (verified)" "$WORK/.wfw/auto/context.md" || fail "context missing verified keep"
 grep -q "objective verified" <<<"$LOOP_OUT" || fail "success message missing: $LOOP_OUT"
+grep -q "\- Starting the loop" <<<"$LOOP_OUT" || fail "missing doing hero line: $LOOP_OUT"
+grep -q "\- Agent is naming this try" <<<"$LOOP_OUT" || fail "missing doing hero line: $LOOP_OUT"
+grep -q "\- Running the test command" <<<"$LOOP_OUT" || fail "missing doing hero line: $LOOP_OUT"
 pass "wfw auto reverts a failing iteration, keeps a verified one, and stops"
 
 # --- agent no-op fails fast instead of burning the cap ---
@@ -147,6 +150,26 @@ set -e
 [ "$(cat "$NOOP_CALLS")" = "1" ] || fail "no-op agent should abort on the first iteration, got $(cat "$NOOP_CALLS")"
 printf '%s\n' "$NOOP_OUT" | grep -q 'made no changes' || fail "expected no-op abort message: $NOOP_OUT"
 pass "wfw auto aborts early when the agent makes no changes"
+
+# --- 15 iteration default ---
+FIFTEEN="$TEST_DIR/fifteen"
+setup_worktree "$FIFTEEN"
+cat >"$MOCK_BIN/noop-agent" <<EOF
+#!/usr/bin/env bash
+exit 0
+EOF
+chmod +x "$MOCK_BIN/noop-agent"
+
+set +e
+FIFTEEN_OUT="$(
+  cd "$FIFTEEN" && PATH="$MOCK_BIN:$PATH" \
+    WFW_AGENT_CLI=noop-agent \
+    WFW_TEST_CMD="true" \
+    "$WFW_BIN" auto "check 15" 2>&1
+)"
+set -e
+grep -q "iter=1/15" <<<"$FIFTEEN_OUT" || fail "expected 15 iterations default: $FIFTEEN_OUT"
+pass "wfw auto defaults to 15 iterations"
 
 echo ""
 echo "All wfw auto checks passed."

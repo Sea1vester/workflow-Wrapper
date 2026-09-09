@@ -15,7 +15,7 @@ auto_lib_dir() {
 source "$(auto_lib_dir)/auto-agent.sh"
 
 auto_max_iterations() {
-  printf '%s\n' "${WFW_AUTO_MAX_ITERATIONS:-12}"
+  printf '%s\n' "${WFW_AUTO_MAX_ITERATIONS:-15}"
 }
 
 auto_write_status() {
@@ -24,7 +24,8 @@ auto_write_status() {
   local max="$3"
   local last_tests="$4"
   local message="$5"
-  local outcome="${6:-}"
+  local doing="$6"
+  local outcome="${7:-}"
   mkdir -p "$WFW_AUTO_DIR"
   cat >"$WFW_AUTO_DIR/status" <<EOF
 phase=$phase
@@ -32,10 +33,19 @@ iter=$iter
 max=$max
 last_tests=$last_tests
 message=$message
+doing=$doing
 outcome=$outcome
 EOF
   if [ "${WFW_AUTO_TUI:-0}" != "1" ]; then
-    echo "wfw auto: iter=${iter}/${max} phase=${phase} tests=${last_tests} ${message}" >&2
+    local display_doing="$doing"
+    if [ -z "$display_doing" ] && [ "$phase" = "agent" ]; then
+      if [ -f "$WFW_AUTO_DIR/doing" ]; then
+        display_doing="$(cat "$WFW_AUTO_DIR/doing")"
+      else
+        display_doing="Agent is naming this try"
+      fi
+    fi
+    echo "wfw auto: iter=${iter}/${max} phase=${phase} tests=${last_tests} ${message} - ${display_doing}" >&2
     if [ -n "$outcome" ]; then
       echo "wfw auto: outcome=${outcome}" >&2
     fi
@@ -196,9 +206,14 @@ auto_append_context() {
   local tests_result="$3"
   local files="$4"
   local excerpt="$5"
+  local hyp="Agent is naming this try"
+  if [ -f "$WFW_AUTO_DIR/doing" ]; then
+    hyp="$(cat "$WFW_AUTO_DIR/doing")"
+  fi
   {
     echo "## Iteration ${iter}"
     echo ""
+    echo "Hypothesis: ${hyp}"
     echo "Decision: ${decision}"
     echo "Tests: ${tests_result}"
     echo "Files: ${files:-none}"
@@ -246,6 +261,8 @@ auto_build_prompt() {
   cat <<EOF
 You are iteration ${iter} of ${max} in a wfw auto experiment loop.
 
+First, write a one-sentence hypothesis of what you are about to change into .wfw/auto/doing.
+
 Read these files first (they are the source of truth):
 - .wfw/auto/program.md
 - .wfw/auto/context.md
@@ -260,9 +277,31 @@ Otherwise do not write DONE.
 
 Do not commit, push, or reset git. wfw will run tests and keep or revert.
 
---- context.md ---
-$(cat "$WFW_AUTO_DIR/context.md")
+--- digest ---
 EOF
+  awk '
+    /^## Iteration / { in_iter=1; hyp=""; decision="" }
+    /^Hypothesis:/ { sub(/^Hypothesis:[[:space:]]*/, ""); hyp=$0 }
+    /^Decision:/ { sub(/^Decision:[[:space:]]*/, ""); decision=$0 }
+    in_iter && decision == "revert" { print "- " hyp; in_iter=0 }
+  ' "$WFW_AUTO_DIR/context.md" > "$WFW_AUTO_DIR/reverts.tmp"
+  if [ -s "$WFW_AUTO_DIR/reverts.tmp" ]; then
+    echo "Reverted hypotheses (do not retry these):"
+    cat "$WFW_AUTO_DIR/reverts.tmp"
+    echo ""
+  fi
+
+  awk '
+    /^## Iteration / { n++; rec[n] = $0 "\n"; next }
+    n > 0 { rec[n] = rec[n] $0 "\n" }
+    END {
+      start = n - 2; if (start < 1) start = 1
+      if (n > 0) {
+        print "Last " (n - start + 1) " iteration records:"
+        for (i = start; i <= n; i++) printf "%s", rec[i]
+      }
+    }
+  ' "$WFW_AUTO_DIR/context.md"
 }
 
 auto_stop_tui() {
@@ -326,11 +365,12 @@ run_auto_loop() {
     WFW_AUTO_TUI_PID=$!
   fi
 
-  auto_write_status "starting" "0" "$max" "pending" "loop starting" ""
+  auto_write_status "starting" "0" "$max" "pending" "loop starting" "Starting the loop" ""
 
   iter=1
   while [ "$iter" -le "$max" ]; do
-    auto_write_status "agent" "$iter" "$max" "${tests_result:-pending}" "agent running" ""
+    rm -f "$WFW_AUTO_DIR/doing"
+    auto_write_status "agent" "$iter" "$max" "${tests_result:-pending}" "agent running" "" ""
     prompt_text="$(auto_build_prompt "$iter" "$max" "$objective")"
     printf '%s\n' "$prompt_text" >"$WFW_AUTO_DIR/prompt.txt"
 
@@ -343,13 +383,13 @@ run_auto_loop() {
     WFW_AUTO_AGENT_PID=""
 
     files="$(auto_files_touched || true)"
-    auto_write_status "tests" "$iter" "$max" "${tests_result:-pending}" "running tests" ""
+    auto_write_status "tests" "$iter" "$max" "${tests_result:-pending}" "running tests" "Running the test command" ""
 
     if [ -z "$files" ] && [ ! -f "$WFW_AUTO_DIR/DONE" ]; then
       # A turn that changed nothing and did not claim DONE is not an experiment.
       # Usually the agent CLI rejected the invocation. Fail now instead of
       # burning the whole cap on silent no-ops.
-      auto_write_status "aborted" "$iter" "$max" "pending" "agent made no changes; aborting" "failed"
+      auto_write_status "aborted" "$iter" "$max" "pending" "agent made no changes; aborting" "Agent made no changes" "failed"
       auto_stop_tui
       auto_append_context "$iter" "aborted (agent no-op)" "n/a" "" "$(auto_excerpt "$WFW_AUTO_DIR/agent.log")"
       {
@@ -378,14 +418,14 @@ run_auto_loop() {
       auto_restore_snapshot
       auto_append_context "$iter" "revert" "$tests_result" "$files" "$excerpt
 agent_exit=${agent_rc}"
-      auto_write_status "revert" "$iter" "$max" "$tests_result" "reverted failed iteration" ""
+      auto_write_status "revert" "$iter" "$max" "$tests_result" "reverted failed iteration" "Rolling back that try" ""
       iter=$((iter + 1))
       continue
     fi
 
     if [ -f "$WFW_AUTO_DIR/DONE" ]; then
       auto_append_context "$iter" "keep (verified)" "$tests_result" "$files" "$excerpt"
-      auto_write_status "done" "$iter" "$max" "$tests_result" "objective verified by tests" "success"
+      auto_write_status "done" "$iter" "$max" "$tests_result" "objective verified by tests" "Objective verified" "success"
       auto_stop_tui
       echo "wfw auto: objective verified after ${iter} iteration(s)." >&2
       echo "wfw auto: context: $WFW_AUTO_DIR/context.md" >&2
@@ -395,11 +435,11 @@ agent_exit=${agent_rc}"
 
     auto_save_snapshot
     auto_append_context "$iter" "keep" "$tests_result" "$files" "$excerpt"
-    auto_write_status "keep" "$iter" "$max" "$tests_result" "kept passing change; continuing" ""
+    auto_write_status "keep" "$iter" "$max" "$tests_result" "kept passing change; continuing" "Checkpointing the tree" ""
     iter=$((iter + 1))
   done
 
-  auto_write_status "failed" "$max" "$max" "${tests_result:-fail}" "max iterations reached" "failed"
+  auto_write_status "failed" "$max" "$max" "${tests_result:-fail}" "max iterations reached" "Max iterations reached" "failed"
   auto_stop_tui
   echo "wfw auto: stopped after ${max} iteration(s) without a verified DONE." >&2
   echo "wfw auto: context: $WFW_AUTO_DIR/context.md" >&2

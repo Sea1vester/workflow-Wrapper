@@ -38,7 +38,7 @@ If missing, tell the user to run `wfw start <feature>` from the app repo and `cd
 
 Never respond to the user in chat and end the turn while Lavish planning is active without running `wfw plan` or `wfw plan --reply` to keep listening. If poll was interrupted, run `wfw plan` again - wfw resumes automatically. Use `wfw plan --open-only` to skip listening.
 
-**`auto`:** experiment loop in the current worktree. One agent change per iteration, then the repo test command. Failed iterations revert. Context accumulates in `.wfw/auto/context.md`. The loop closes when `.wfw/auto/DONE` exists and tests pass. Cap: `WFW_AUTO_MAX_ITERATIONS` (default 12). Do not invoke gnhf.
+**`auto`:** experiment loop in the current worktree. One agent change per iteration, then the repo test command. Failed iterations revert. Context accumulates in `.wfw/auto/context.md`. The loop closes when `.wfw/auto/DONE` exists and tests pass. Cap: `WFW_AUTO_MAX_ITERATIONS` (default 15). Do not invoke gnhf.
 
 **Install:** `npm install -g github:Sea1vester/workflow-Wrapper` (updates: rerun the same command).
 

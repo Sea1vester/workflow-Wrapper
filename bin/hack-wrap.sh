@@ -6,7 +6,7 @@ SHARED_PLAN="shared_lavish_plan.html"
 ARTIFACT_LINK="lavish_artifact.html"
 PROMPT_FILE=".wfw/last-prompt.txt"
 LISTENING_FILE=".wfw/plan-listening"
-AUTO_MAX_ITERATIONS="${WFW_AUTO_MAX_ITERATIONS:-12}"
+AUTO_MAX_ITERATIONS="${WFW_AUTO_MAX_ITERATIONS:-15}"
 NO_MISTAKES_SKIP="${WFW_NO_MISTAKES_SKIP:-}"
 
 require_cmd() {
@@ -51,7 +51,7 @@ Passthrough commands (full CLI retained):
 auto loop (wfw auto):
   One coding-agent change per iteration, then the repo test command.
   Keep on pass, revert on fail. Stops when .wfw/auto/DONE exists and tests pass.
-  Default cap: 12 iterations (WFW_AUTO_MAX_ITERATIONS). Test command: WFW_TEST_CMD.
+  Default cap: 15 iterations (WFW_AUTO_MAX_ITERATIONS). Test command: WFW_TEST_CMD.
 
 no-mistakes validate (wfw validate):
   Optional skip steps via WFW_NO_MISTAKES_SKIP (e.g. document)
