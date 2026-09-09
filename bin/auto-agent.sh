@@ -67,12 +67,14 @@ run_auto_agent_oneshot() {
       fi
       ;;
     agy)
-      # agy's -p consumes the next token as the prompt, so the prompt must
-      # follow --print directly and permission flags go after it.
+      # agy's --print consumes the next token as the prompt, so the prompt
+      # must follow --print directly and other flags go after it.
       cmd=(agy --print "$prompt")
       if auto_agent_skip_permissions; then
         cmd+=(--dangerously-skip-permissions)
       fi
+      # A single agent turn on a real task can take several minutes.
+      cmd+=(--print-timeout "${WFW_AUTO_AGENT_TIMEOUT:-10m0s}")
       ;;
     *)
       # Unknown CLIs (including test mocks): prompt as last arg, optional -p.
