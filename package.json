@@ -9,6 +9,7 @@
   "scripts": {
     "build:mcp": "npm --prefix mcp install && npm --prefix mcp run build",
     "prepublishOnly": "npm run build:mcp",
+    "postinstall": "bash bin/postinstall.sh",
     "setup": "bash bin/postinstall.sh",
     "install-mcp": "bash bin/install-mcp.sh",
     "install-skill": "bash bin/install-skill.sh",

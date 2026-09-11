@@ -39,6 +39,13 @@ fi
 
 echo "wfw postinstall: refreshing skills and MCP config..."
 
+# Global npm install ships mcp/dist + mcp/package.json but not node_modules.
+# Without these deps, wfw-mcp dies on start with "Cannot find package '@modelcontextprotocol/sdk'".
+if [ -f "$ROOT/mcp/package.json" ]; then
+  echo "wfw postinstall: installing MCP runtime dependencies..."
+  npm --prefix "$ROOT/mcp" install --omit=dev --no-fund --no-audit
+fi
+
 bash "$ROOT/bin/install-skill.sh"
 bash "$ROOT/bin/install-mcp.sh"
 
