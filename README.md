@@ -21,7 +21,7 @@ Edits from any lease (or `wfw plan` from any worktree) are visible to every agen
 ```
 Nothing from the plan enters git - wfw adds the right `.git/info/exclude` entries on `wfw start`.
 
-wfw also wraps those tools behind a small command set, runs an experiment loop on `wfw auto` (12 iterations by default, keep or revert by tests), and skips the slow no-mistakes document step on `wfw validate` unless you override it.
+wfw also wraps those tools behind a small command set, runs an experiment loop on `wfw auto` (15 iterations by default, keep or revert by tests), and skips the slow no-mistakes document step on `wfw validate` unless you override it.
 
 ## Why not just use the tools separately
 
