@@ -41,9 +41,12 @@ echo "wfw postinstall: refreshing skills and MCP config..."
 
 # Global npm install ships mcp/dist + mcp/package.json but not node_modules.
 # Without these deps, wfw-mcp dies on start with "Cannot find package '@modelcontextprotocol/sdk'".
+# Unset npm_config_global so a nested install cannot re-enter this postinstall as a
+# global install (which previously forked forever under npm install -g).
 if [ -f "$ROOT/mcp/package.json" ]; then
   echo "wfw postinstall: installing MCP runtime dependencies..."
-  npm --prefix "$ROOT/mcp" install --omit=dev --no-fund --no-audit
+  env -u npm_config_global -u npm_config_prefix \
+    npm --prefix "$ROOT/mcp" install --omit=dev --no-fund --no-audit --ignore-scripts
 fi
 
 bash "$ROOT/bin/install-skill.sh"
