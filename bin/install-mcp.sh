@@ -3,14 +3,25 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
+# Refuse ephemeral npm staging paths (git-clone caches). Writing those into
+# ~/.cursor/mcp.json makes Cursor spawn a deleted tree after install finishes.
+is_ephemeral_path() {
+  case "$1" in
+    */.npm/_cacache/*|*/git-clone*|*/npm-*/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 resolve_wfw_mcp_bin() {
   if [ -n "${WFW_MCP_BIN:-}" ]; then
     printf '%s\n' "$WFW_MCP_BIN"
     return
   fi
 
+  # Prefer the PATH command name so Cursor always follows the current global bin
+  # after upgrades, instead of a frozen absolute path from install time.
   if command -v wfw-mcp >/dev/null 2>&1; then
-    command -v wfw-mcp
+    printf '%s\n' "wfw-mcp"
     return
   fi
 
@@ -25,7 +36,17 @@ resolve_wfw_mcp_bin() {
 }
 
 WFW_MCP_BIN="$(resolve_wfw_mcp_bin)"
-WFW_MCP_BIN="$(cd "$(dirname "$WFW_MCP_BIN")" && pwd)/$(basename "$WFW_MCP_BIN")"
+case "$WFW_MCP_BIN" in
+  /*)
+    WFW_MCP_BIN="$(cd "$(dirname "$WFW_MCP_BIN")" && pwd)/$(basename "$WFW_MCP_BIN")"
+    if is_ephemeral_path "$WFW_MCP_BIN"; then
+      echo "Error: refusing to write ephemeral npm path into MCP config:" >&2
+      echo "  $WFW_MCP_BIN" >&2
+      echo "Finish the global install, then re-run: wfw setup" >&2
+      exit 1
+    fi
+    ;;
+esac
 
 if ! command -v wfw >/dev/null 2>&1 && [ ! -x "$ROOT/bin/hack-wrap.sh" ]; then
   echo "Error: wfw not found. Run 'npm link' once from workflow-wrapper, then retry." >&2
